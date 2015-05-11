@@ -5,6 +5,9 @@
 //
 // Revision History:
 // 2015/5/6:  LJB  Find and open file given run #
+// 2015/5/7:  LJB  Open multiple RIO files, requires consecutive RIO 
+//                 files starting with RIO0
+// 2015/5/10: LJB  Reads events into a NI_event structure
 
 #ifndef RAW_FILE_CPP__
 #define RAW_FILE_CPP__
@@ -15,6 +18,7 @@
 //                           Constructors
 /*************************************************************************/
 RawFile::RawFile() {
+  numchan = 0;
 }
 
 RawFile::RawFile(std::string path, std::string name) {
@@ -41,22 +45,31 @@ RawFile::~RawFile() {
 /*************************************************************************/
 
 bool RawFile::Open(std::string path, std::string name) {
-  if (fFileStream.is_open())
+  if (RIO[0].fFileStream.is_open())
     Close();
   std::string filename = path;
   filename.append("/");
   filename.append(name);
-  fFileStream.open(filename.c_str(),std::ios::binary);
-  if (fFileStream.is_open()) {
+  RIO[0].fFileStream.open(filename.c_str(),std::ios::binary);
+  if (RIO[0].fFileStream.is_open()) {
     fFilePath = path;
     fFileName = name;
+    //open rest
+    std::string filename2 = filename;
+    std::size_t fpos = filename2.find("RIO") + 3;
+    for (int rio=1;rio<NRIO;rio++) {
+      std::ostringstream riostrm;
+      riostrm << rio;
+      filename2.replace(fpos,1,riostrm.str());
+      RIO[rio].fFileStream.open(filename2.c_str(),std::ios::binary);
+    }
     Scan();
   }
   else {
     fFilePath = "";
     fFileName = "";
   }
-  return fFileStream.is_open();
+  return RIO[0].fFileStream.is_open();
 }
 
 bool RawFile::Open(std::string filename) {
@@ -95,45 +108,58 @@ bool RawFile::Open(int filenum) {
 //                               Close
 /*************************************************************************/
 void RawFile::Close() {
-  if (fFileStream.is_open()) {
-    fFileName = "";
-    fFilePath = "";
-    fFileStream.close();
+  for (int rio=0; rio<NRIO; rio++) {
+    if (RIO[rio].fFileStream.is_open()) {
+      fFileName = "";
+      fFilePath = "";
+      RIO[rio].fFileStream.close();
+    }
   }
 }
 
-
-/*************************************************************************/
-//                            CheckStream
-/*************************************************************************/
-/*
-bool RawFile::CheckStream(std::ifstream& stream) {
-  if (!stream.good()) {
-    if (stream.eof()) {      
-      return false;
-    }
-    if (stream.fail()) {
-      cout << "I/O logical error" << endl;
-      return false;
-    }
-    if (stream.bad()) {
-      cout << "Read error" << endl;
-      return false;
-    }
-  }
-  return true;
-}
-*/
 /*************************************************************************/
 //                                Scan
 /*************************************************************************/
 bool RawFile::Scan() {
+  numchan = 0;
+  for (int rio=0; rio<NRIO; rio++) {
+    if (RIO[rio].fFileStream.is_open()) {
+      RIO[rio].fFileStream.seekg(0,RIO[rio].fFileStream.end);
+      RIO[rio].filelength = RIO[rio].fFileStream.tellg();
+      RIO[rio].fFileStream.seekg(0,RIO[0].fFileStream.beg);
+
+      //Read config file?
+      
+      //Read Header
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].date_len),sizeof(Int_t));
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(RIO[rio].date),RIO[rio].date_len);
+      RIO[rio].date[RIO[rio].date_len] = '\0';
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].comment_len),sizeof(Int_t));
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(RIO[rio].comment),RIO[rio].comment_len);
+      RIO[rio].comment[RIO[rio].comment_len] = '\0';
+
+      streampos pos = RIO[rio].fFileStream.tellg();
+      //Read First Event
+      Long64_t timestamp;
+      Short_t Edaq;
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&timestamp),sizeof(Long64_t));
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].numch),sizeof(Int_t));
+      numchan += RIO[rio].numch;
+      for (int e=0;e<RIO[rio].numch;e++)
+	RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].ch[e].Edaq),sizeof(Short_t));
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].wavelen),sizeof(Int_t));
+      RIO[rio].wavelen = RIO[rio].wavelen/8.;
+      for (int e=0;e<RIO[rio].numch;e++)
+	RIO[rio].ch[e].wave.resize(RIO[rio].wavelen);
+      for (int e=0;e<RIO[rio].numch;e++)
+	RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].ch[e].wave[0]),RIO[rio].wavelen*sizeof(Short_t));
+
+      RIO[rio].fFileStream.seekg(pos);
+    }
+  }
+
   //Scan the file
   /*
-  fFileList[FAT].fFileStream.seekg(0,fFileList[FAT].fFileStream.end);
-  filelength = fFileList[FAT].fFileStream.tellg();
-  fFileList[FAT].fFileStream.seekg(0,fFileList[FAT].fFileStream.beg);
-  streampos pos = fFileList[FAT].fFileStream.tellg();
   while (pos < filelength) {
     fFileList[FAT].fFileStream.seekg(pos);
     packet_list.push_back(pos);
@@ -149,8 +175,8 @@ bool RawFile::Scan() {
       //return true;
   }
   fFileList[FAT].fFileStream.seekg(0,fFileList[FAT].fFileStream.beg);
-  return true;
   */
+  return true;
 }
 /*************************************************************************/
 //                              ReadEvent
@@ -160,142 +186,58 @@ bool RawFile::ReadEvent(int packetno, output_header& header, std::vector<Data_Bl
   fFileList[FAT].fFileStream.seekg(packet_list[packetno]);
   ReadEvent(header,datablck);
 }
-
-bool RawFile::ReadEvent(output_header& header, std::vector<Data_Block_t> &datablck) {
-  if (!ReadHeader(header))
-    return false;
-  //Check board number?
-  bool bnfound;
-  int board_index = 0;
-  do {
-    bnfound = (header.board_number == boardnum[board_index])? true : false;
-  } while (!bnfound && ++board_index < NUMBOARDS);
-  if (!bnfound) {
-    cout << "Board number does not match record." << endl;
-    //return false;   do we need this? LJB
-  }
-  if (!ReadData(header.data_size,datablck))
-    return false;
-  return true;
-  }
 */
-
-/*************************************************************************/
-//                             ReadHeader
-/*************************************************************************/
-/*
-bool RawFile::ReadHeader(output_header& header) {
-  if (!IsFatOpen()) {
-    cout << "Error: file not open" << endl;
-    return false;
-  }
-  if (!CheckStream(fFileList[FAT].fFileStream))
+bool RawFile::ReadEvent(ev_t &NI_event) {
+  Long64_t ts[NRIO];
+  Int_t wavelen, numch;
+  for (int rio=0;rio<NRIO;rio++) {
+    streampos pos = RIO[rio].fFileStream.tellg();
+    if (pos >= RIO[rio].filelength) {
+      cout << "end of file" << endl;
       return false;
-  //LJB This may eventually depend on .fat version number
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.board_number),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.packet_serial),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.fadc_number),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.data_size),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.tv_usec),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.tv_sec),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.admin_message),sizeof(Int_t));
-  fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&header.buffer_number),sizeof(Int_t));
-
-  if (!CheckStream(fFileList[FAT].fFileStream))
+    }
+    RIO[rio].fFileStream.read(reinterpret_cast<char *>(&ts[rio]),sizeof(Long64_t));
+    RIO[rio].fFileStream.read(reinterpret_cast<char *>(&numch),sizeof(Int_t));
+    if (numch != RIO[rio].numch) {
+      cout << "numch change for board " << rio << endl;
       return false;
-  return true;
-}
-*/
-/*************************************************************************/
-//                              ReadData
-/*************************************************************************/
-/*
-bool RawFile::ReadData(Int_t datasize, std::vector<Data_Block_t> &datablck) {
-  if (datasize <= 0) {
-    cout << "Error: Data size 0" << endl;
-    return false;
-  }
-  if (datasize%10 != 0) {
-    cout << "Error: Bad data size" << endl;
-    return false;
-  }
-  int size = datasize/10;
-  datablck.clear();
-  datablck.resize(size);
-
-  for (int i=0;i<size;i++) {
-    UInt_t buffer; //needs unsigned cast
-    fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&buffer),4);
-    SwapEndian(buffer,4);
-    datablck[i].timestamp = (buffer >> 4);
-    datablck[i].overflowB0 = (buffer & 0x08);
-    datablck[i].overflowA0 = (buffer & 0x04);
-    datablck[i].overflowB1 = (buffer & 0x02);
-    datablck[i].overflowA1 = (buffer & 0x01);
-    fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&buffer),3);
-    SwapEndian(buffer,3);
-    datablck[i].sample[3] = ((buffer & 0xFFF000)>>12);
-    datablck[i].sample[2] =  (buffer & 0x000FFF);
-    fFileList[FAT].fFileStream.read(reinterpret_cast<char *>(&buffer),3);
-    SwapEndian(buffer,3);
-    datablck[i].sample[1] = ((buffer & 0xFFF000)>>12);
-    datablck[i].sample[0] =  (buffer & 0x000FFF);
-    if (!CheckStream(fFileList[FAT].fFileStream))
+    }
+    NI_event.numch += numch;
+    for (int ch=0;ch<RIO[rio].numch;ch++) {
+      int thech = rio*RIO[rio].numch + ch;
+      NI_event.ch[thech].rio = rio;
+      NI_event.ch[thech].ch = ch;
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&NI_event.ch[thech].Edaq),sizeof(Short_t));
+    }
+    RIO[rio].fFileStream.read(reinterpret_cast<char *>(&wavelen),sizeof(Int_t));
+    wavelen = wavelen/8.;
+    if (wavelen != RIO[rio].wavelen) {
+      cout << "wavelen change for board " << rio << endl;
+      cout << wavelen << " != " << RIO[rio].wavelen << endl;
       return false;
+    }
+    for (int ch=0;ch<RIO[rio].numch;ch++) {
+      int thech = rio*RIO[rio].numch + ch;
+      NI_event.ch[thech].wavelen = wavelen;
+      NI_event.ch[thech].wave.resize(wavelen);
+      RIO[rio].fFileStream.read(reinterpret_cast<char *>(&NI_event.ch[thech].wave[0]),wavelen*sizeof(Short_t));
+    }
   }
+  //For now, assume timestamps will match
+  for (int rio=0;rio<NRIO-1;rio++) {
+    if (rio < NRIO-1) {
+      if (ts[rio] != ts[rio+1]) {
+	cout << "Timestamp mismatch, " << ts[rio] << " != " << ts[rio+1] << endl;
+	return false;
+      }
+    }
+  }
+  NI_event.timestamp = ts[0];
+
   return true;
 }
-*/
-/*************************************************************************/
-//                            FillDataBlocks
-/*************************************************************************/
-/*
-void RawFile::FillDataBlocks(UChar_t buffer[RAWDATA_LENGTH], int size, std::vector<Data_Block_t> &datablck) {
-  datablck.clear();
-  datablck.resize(size);
-  for (int i=0;i<size;i++) {    
-    datablck[i].timestamp = (buffer[i*10+0] << 20) | (buffer[i*10+1] << 12) |
-      (buffer[i*10+2] << 4)  | (buffer[i*10+3] >> 4);
-    datablck[i].overflowB0 = ((buffer[i*10+3] & 0x08) != 0);
-    datablck[i].overflowA0 = ((buffer[i*10+3] & 0x04) != 0);
-    datablck[i].overflowB1 = ((buffer[i*10+3] & 0x02) != 0);
-    datablck[i].overflowA1 = ((buffer[i*10+3] & 0x01) != 0);
-    datablck[i].sample[3] = (buffer[i*10+4] << 4) |(buffer[i*10+5] >> 4);
-    datablck[i].sample[2] = ((buffer[i*10+5] & 0xf) << 8) |(buffer[i*10+6]);
-    datablck[i].sample[1] = (buffer[i*10+7] << 4) |(buffer[i*10+8] >> 4);
-    datablck[i].sample[0] = ((buffer[i*10+8] & 0xf) << 8) |(buffer[i*10+9]);
-  }
-}
-*/
-/*************************************************************************/
-//                            PrintHeader
-/*************************************************************************/
-/*
-void RawFile::PrintHeader(output_header header){
-  cout << "This packet's header:" << endl;
-  cout << "** Board number:   " << header.board_number << endl;
-  cout << "** Packet Serial:  " << header.packet_serial << endl;
-  cout << "** FADC number:    " << header.fadc_number << endl;
-  cout << "** Data size:      " << header.data_size << endl;
-  cout << "** TV usec:        " << header.tv_usec << endl;
-  cout << "** TV sec:         " << header.tv_sec << endl;
-  cout << "** Admin. message: " << header.admin_message << endl;
-  cout << "** Buffer number:  " << header.buffer_number << endl;
-}
-*/
-/*************************************************************************/
-//                             SwapEndian
-/*************************************************************************/
-/*
-void RawFile::SwapEndian(UInt_t& swapme, int bytes) {
-  if (bytes <= 1)
-    return;
-  UInt_t val = 0;
-  for (int i=0;i<bytes;i++) {
-    val |= ((swapme >> 8*i) & 0xFF) << (8*(bytes-1)-8*i);
-  }
-  swapme = val;
-}
-*/
+
+
+
 #endif // __RAW_FILE_CPP__
 
