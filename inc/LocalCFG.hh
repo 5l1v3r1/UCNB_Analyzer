@@ -3,6 +3,8 @@
 
 #define INPUT_PATH "/media/leah/UCNS2/UCNB/FebruaryData/raw"
 #define ROOT_PATH "/media/leah/UCNS2/UCNB/FebruaryData/root"
+#define TRIG_PATH "/media/leah/UCNS2/UCNB/FebruaryData/trig"
+#define MAXWAVE 6000
 #define MAXCH 8
 #define NRIO 3
 

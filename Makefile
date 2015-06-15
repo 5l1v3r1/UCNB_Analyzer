@@ -10,7 +10,7 @@ CPPFLAGS = -I inc/ -D_FILE_OFFSET_BITS=64
 LDFLAGS = -L/usr/local/lib -L/usr/include -L/root/lib
 
 MAIN = Analyzer
-SOURCES = RawFile.cpp ROOTTreeFile.cpp
+SOURCES = RawFile.cpp ROOTTreeFile.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MAIN).o 
 INCLUDES = $(SOURCES:.cpp=.hh) LocalCFG.hh EvType.hh
 

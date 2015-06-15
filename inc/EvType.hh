@@ -14,7 +14,8 @@
 
 struct evch_t {
   Int_t wavelen;
-  std::vector<Short_t> wave;
+  //std::vector<short> wave;  --LJB  TTree fails?
+  Short_t wave[MAXWAVE];
   Short_t rio;
   Short_t ch;
   Short_t Edaq;

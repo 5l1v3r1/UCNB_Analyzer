@@ -1,14 +1,13 @@
-// File: ROOTTreeFile.hh
+// File: TrigTreeFile.hh
 // Name: Leah Broussard
-// Date: 2015/5/8
-// Purpose: Handles ROOT TTree file with waveforms
+// Date: 2015/5/14
+// Purpose: Handles ROOT TTree file with E,t
 //
 // Revision History:
-// 2015/5/8:  LJB  Create
-// 2015/5/11: LJB  Read/write ROOT files with Tree of NI_event
+// 2015/5/14:  LJB  Created
  
-#ifndef ROOT_TREE_FILE_HH__
-#define ROOT_TREE_FILE_HH__
+#ifndef TRIG_TREE_FILE_HH__
+#define TRIG_TREE_FILE_HH__
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -21,7 +20,6 @@
 #include "TTree.h"
 
 #include "LocalCFG.hh"
-#include "EvType.hh"
 #if !defined (__CINT__)
 #endif
 
@@ -29,19 +27,27 @@ using std::cout;
 using std::endl;
 using std::vector;
 
-class ROOTTreeFile
+class TrigTreeFile
 {
 private:
+  struct event_t{
+    Double_t E;
+    Double_t t;
+    Int_t rio;
+    Int_t rio_ch;
+    Int_t chan;
+  };
   TFile* RootFile;
   TTree* RootTree;
   bool createmode;
+  int privatevariable;
   Int_t nrio;
   Int_t nch;
   bool setup;  
 public:
-  ev_t NI_event;
-  ROOTTreeFile();
-  ~ROOTTreeFile();
+  event_t Trig_event;  //Do the thing!
+  TrigTreeFile();
+  ~TrigTreeFile();
   void Close();
   bool Open(std::string path, std::string name);
   bool Open(std::string filename);
@@ -52,11 +58,10 @@ public:
   bool Create(std::string filename);
   bool Create(int filenum);
 #endif // !defined (__CINT__)
-  void SetupTree(int numch);
   void FillTree();
   void Write();
   Int_t GetNumEvents(){return RootTree->GetEntries();};
   void GetEvent(Int_t ev);
 };
 
-#endif // ROOT_TREE_FILE_HH__
+#endif // TRIG_TREE_FILE_HH__

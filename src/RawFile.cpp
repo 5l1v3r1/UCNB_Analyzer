@@ -7,7 +7,7 @@
 // 2015/5/6:  LJB  Find and open file given run #
 // 2015/5/7:  LJB  Open multiple RIO files, requires consecutive RIO 
 //                 files starting with RIO0
-// 2015/5/10: LJB  Reads events into a NI_event structure
+// 2015/5/11: LJB  Reads events into a NI_event structure
 
 #ifndef RAW_FILE_CPP__
 #define RAW_FILE_CPP__
@@ -83,11 +83,11 @@ bool RawFile::Open(std::string filename) {
     //1. Check local directory
     //2. Check Files/ directory
     //3. Check INPUT_PATH defined in UCNConfig.hh
-    //4. Check environmental variables (getenv("WNR_RAW_DATA"))
+    //4. Check environmental variables (getenv("RAW_DATA_DIR"))
     std::string name = filename; 
     const int ntrypath = 7;
     std::string trypath[] = {".","file","File","files","Files",
-			      INPUT_PATH/*,getenv("WNR_RAW_DATA")*/};
+			      INPUT_PATH/*,getenv("RAW_DATA_DIR")*/};
     int tp = 0;
     bool success = false;
     do {
@@ -150,7 +150,7 @@ bool RawFile::Scan() {
       RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].wavelen),sizeof(Int_t));
       RIO[rio].wavelen = RIO[rio].wavelen/8.;
       for (int e=0;e<RIO[rio].numch;e++)
-	RIO[rio].ch[e].wave.resize(RIO[rio].wavelen);
+        RIO[rio].ch[e].wave.resize(RIO[rio].wavelen);
       for (int e=0;e<RIO[rio].numch;e++)
 	RIO[rio].fFileStream.read(reinterpret_cast<char *>(&RIO[rio].ch[e].wave[0]),RIO[rio].wavelen*sizeof(Short_t));
 
@@ -193,7 +193,6 @@ bool RawFile::ReadEvent(ev_t &NI_event) {
   for (int rio=0;rio<NRIO;rio++) {
     streampos pos = RIO[rio].fFileStream.tellg();
     if (pos >= RIO[rio].filelength) {
-      cout << "end of file" << endl;
       return false;
     }
     RIO[rio].fFileStream.read(reinterpret_cast<char *>(&ts[rio]),sizeof(Long64_t));
@@ -219,7 +218,12 @@ bool RawFile::ReadEvent(ev_t &NI_event) {
     for (int ch=0;ch<RIO[rio].numch;ch++) {
       int thech = rio*RIO[rio].numch + ch;
       NI_event.ch[thech].wavelen = wavelen;
-      NI_event.ch[thech].wave.resize(wavelen);
+      if (wavelen > MAXWAVE) {
+	cout << "error, wavelen > MAXWAVE" << endl;
+	cout << wavelen << " > " << MAXWAVE << endl;
+	return false;
+      }
+      //NI_event.ch[thech].wave.resize(wavelen);
       RIO[rio].fFileStream.read(reinterpret_cast<char *>(&NI_event.ch[thech].wave[0]),wavelen*sizeof(Short_t));
     }
   }
