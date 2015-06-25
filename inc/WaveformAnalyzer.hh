@@ -38,7 +38,6 @@ private:
   vector<Double_t> wave;
   vector<Double_t> s_trap;
   vector<Double_t> p_trap;
-  //move these to ROOTTreeFile
   Int_t decaytime, risetime, risetop;
   Int_t pretrigger;
   Double_t baseline;
@@ -50,7 +49,6 @@ public:
   TGraph* gTrap;
   TF1* f;
   TH1D* h;
-  //need to be channel specific
 
   WaveformAnalyzer();
   WaveformAnalyzer(int filenum);

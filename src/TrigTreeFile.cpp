@@ -142,8 +142,8 @@ bool TrigTreeFile::Create(std::string path, std::string name) {
   RootTree->Branch("E",&Trig_event.E,"E/D");
   RootTree->Branch("t",&Trig_event.t,"t/D");
   RootTree->Branch("rio",&Trig_event.rio,"rio/I");
-  RootTree->Branch("rio_ch",&Trig_event.rio_ch,"rio_ch");
-  RootTree->Branch("chan",&Trig_event.chan,"chan");
+  RootTree->Branch("rio_ch",&Trig_event.rio_ch,"rio_ch/I");
+  RootTree->Branch("chan",&Trig_event.chan,"chan/I");
 
   createmode = true;
   return true;

@@ -21,6 +21,7 @@
 #include "ROOTTreeFile.hh"
 #include "TrigTreeFile.hh"
 #include "WaveformAnalyzer.hh"
+#include "TriggerList.hh"
 //#include "TInterpreter.h"
 //#pragma link C++ class vector<Short_t>+;
 
@@ -51,7 +52,7 @@ int main (int argc, char *argv[]) {
   
   cout << "Welcome to the NI DAQ Analyzer " << endl;
 
-  bool doraw = false, dotrap = false, fileok = false;;
+  bool doraw = false, dotrap = false, fileok = false;
   int i=1, filenum1, filenum2, thresh;
 
   //Parse parameters
@@ -160,17 +161,23 @@ void DoTrap(int filenum, int thresh) {
   TrigFile.Create(filenum);
   WaveformAnalyzer WA;
   cout << "IDing triggers in file " << filenum << endl;
-  trigs_t trig[RootFile.NI_event.numch];
+  TriggerList TL(RootFile.NI_event.numch);
+  trigs_t trig[RootFile.NI_event.numch]; //replaced
   int nentries = RootFile.GetNumEvents();
-  int debugev = -1;
-  //for (int ev=0;ev<nentries;ev++) {
+  int debugev = 0;  //algorithm check
   for (int ev=0;ev<nentries;ev++) {
     printf("Working....%d/%d  (%d \%)\r",ev,nentries,100*ev/nentries);
     RootFile.GetEvent(ev);
     for (int ch=0;ch<RootFile.NI_event.numch;ch++) {
       WA.MakeTrap(RootFile.NI_event.ch[ch].wavelen, RootFile.NI_event.ch[ch].wave);
-      WA.GetTriggers(thresh,trig[ch].E,trig[ch].T);
+      //vector<Double_t> E;
+      //vector<Double_t> T;
+      //WA.GetTriggers(thresh,E,T);
+      //TL.SetTriggerList(ch,E,T);
+      WA.GetTriggers(thresh,trig[ch].E,trig[ch].T);//replaced
+      TL.SetTriggerList(ch,trig[ch].E,trig[ch].T);
     }
+    TL.OrderTriggerList();
     int tottrig = 0;
     for (int ch=0;ch<RootFile.NI_event.numch;ch++)
       tottrig += trig[ch].E.size();
@@ -254,20 +261,28 @@ void DoTrap(int filenum, int thresh) {
 	check = check->prev;
       double checkt = *check->myT;
       do{
-	if (ev == debugev) cout << "T=" << RootFile.NI_event.timestamp << endl;
-	if (ev == debugev) cout <<  "time " << *check->myT << endl;
-	if (ev == debugev) cout <<  "energy " << *check->myE << endl;
 	TrigFile.Trig_event.E = *check->myE;
 	TrigFile.Trig_event.t = *check->myT + (double)RootFile.NI_event.timestamp;
+	double checkE, checkT; int checkch;
+	TL.GetTrigger(checkch, checkE, checkT);
+	if (checkch != check->ch) {cout << "channel mismatch" << endl;}
+	if (checkE != *check->myE) {cout << "E mismatch" << endl;}
+	if (checkT != *check->myT) {cout << "T mismatch" << endl;}
 	if (TrigFile.Trig_event.t < checkt ) {
 	  cout << "Problem, " << TrigFile.Trig_event.t << " after " << checkt <<", event " << ev << endl;
 	  cout << "ch " << check->ch << endl;
 	}
 	int checkt = TrigFile.Trig_event.t;
-	TrigFile.Trig_event.chan = check->ch;
 	TrigFile.Trig_event.rio = RootFile.NI_event.ch[check->ch].rio;
 	TrigFile.Trig_event.rio_ch = RootFile.NI_event.ch[check->ch].ch;
-	//cout << "Ordered " << TrigFile.Trig_event.t << " from ch " << TrigFile.Trig_event.chan << endl;
+	TrigFile.Trig_event.chan = check->ch;
+	if (ev == debugev) cout << "timestamp=" << RootFile.NI_event.timestamp << endl;
+	if (ev == debugev) cout << "time " << *check->myT << endl;
+	if (ev == debugev) cout << "t " << TrigFile.Trig_event.t << endl;
+	if (ev == debugev) cout << "E " << TrigFile.Trig_event.E << endl;
+	if (ev == debugev) cout << "rio" << TrigFile.Trig_event.rio << endl;
+	if (ev == debugev) cout << "rio_ch" << TrigFile.Trig_event.rio_ch << endl;
+	if (ev == debugev) cout << "chan " << TrigFile.Trig_event.chan << endl;
 	TrigFile.FillTree();
       }while ((check = check->next)!=NULL);
     }//tottrig > 0
