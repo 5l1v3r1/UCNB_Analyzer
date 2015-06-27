@@ -55,10 +55,10 @@ bool ROOTTreeFile::Open(std::string path, std::string name){
   filename.append("/");
   filename.append(name);
   if (gSystem->AccessPathName(filename.c_str())) {
-    cout << filename << " not found " << endl;
+    //cout << filename << " not found " << endl;
     return false;
   }
-  cout << filename << " found " << endl;
+  //cout << filename << " found " << endl;
   RootFile = new TFile(filename.c_str());
   if (!RootFile->IsOpen()){ 
     Close();

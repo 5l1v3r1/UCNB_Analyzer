@@ -23,6 +23,7 @@
 #include "TH1.h"
 #include "TF1.h"
 #include "TCanvas.h"
+#include "Trigger.hh"
 
 #define FITPOLY 5       //order+1 of fit polynomial
 
@@ -61,6 +62,7 @@ public:
   void PlotTrap();
   Double_t DelaySubtract(int index);
   void GetTriggers(Long64_t thresh, vector<Double_t> &E, vector<Double_t> &T);
+  void GetTriggers(Long64_t thresh, vector<trigger_t> &triglist);
   //Bool_t IsGoodWaveform();
 };
 

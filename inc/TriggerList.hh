@@ -17,6 +17,7 @@
 
 //#include "TSystem.h"
 #include "Rtypes.h"
+#include "Trigger.hh"
 
 using std::vector;
 using std::cout;
@@ -28,32 +29,23 @@ using std::endl;
 class TriggerList
 {
 private:
-  struct triglist_t{
-    vector<Double_t> E;
-    vector<Double_t> T;
-  };
-  vector<triglist_t> triglist;
+  vector<trigger_t> triggerlist;
   struct trigorderedlist_t{
     trigorderedlist_t* prev;
-    trigorderedlist_t* next;  
-    Double_t *myE;
-    Double_t *myT;
-    Int_t ch;
+    trigorderedlist_t* next;
+    trigger_t* mytrig;
   };
   vector<trigorderedlist_t> trigorderedlist;
-  bool setch;
   bool ordered;
-  int nch;
   int tottrig;
   trigorderedlist_t* check;
 public:
   TriggerList();
-  TriggerList(int numch);
   ~TriggerList();
-  void SetNumch(int numch);
-  void SetTriggerList(int ch, vector<Double_t> E, vector<Double_t> T);
-  void OrderTriggerList();
-  bool GetTrigger(Int_t& ch, Double_t& E, Double_t& T);
+  void Reset();
+  void AddTriggers(vector<trigger_t> addtrigs);
+  void OrderTriggers();
+  bool GetTrigger(trigger_t &trig);
 };
 
 #endif // TRIGGERLIST_HH__

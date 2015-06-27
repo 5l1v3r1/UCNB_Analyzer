@@ -104,6 +104,20 @@ void WaveformAnalyzer::GetTriggers(Long64_t thresh, vector<Double_t> &E, vector<
 }
 
 /*************************************************************************/
+//                            GetTriggers
+/*************************************************************************/
+void WaveformAnalyzer::GetTriggers(Long64_t thresh, vector<trigger_t> &triglist) {
+  vector<Double_t> E; 
+  vector<Double_t> T;
+  GetTriggers(thresh, E, T);
+  triglist.resize(E.size());
+  for (int i=0;i<triglist.size();i++) {
+    triglist[i].E = E[i];
+    triglist[i].T = T[i];
+  }
+}
+
+/*************************************************************************/
 //                            BaselineShift
 /*************************************************************************/
 void WaveformAnalyzer::BaselineShift() {

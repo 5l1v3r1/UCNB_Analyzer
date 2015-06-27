@@ -161,131 +161,33 @@ void DoTrap(int filenum, int thresh) {
   TrigFile.Create(filenum);
   WaveformAnalyzer WA;
   cout << "IDing triggers in file " << filenum << endl;
-  TriggerList TL(RootFile.NI_event.numch);
-  trigs_t trig[RootFile.NI_event.numch]; //replaced
+  //-----Find and order triggers
+  TriggerList TL;
   int nentries = RootFile.GetNumEvents();
-  int debugev = 0;  //algorithm check
   for (int ev=0;ev<nentries;ev++) {
+    //for (int ev=0;ev<10;ev++) {
     printf("Working....%d/%d  (%d \%)\r",ev,nentries,100*ev/nentries);
     RootFile.GetEvent(ev);
+    TL.Reset();
     for (int ch=0;ch<RootFile.NI_event.numch;ch++) {
       WA.MakeTrap(RootFile.NI_event.ch[ch].wavelen, RootFile.NI_event.ch[ch].wave);
-      //vector<Double_t> E;
-      //vector<Double_t> T;
-      //WA.GetTriggers(thresh,E,T);
-      //TL.SetTriggerList(ch,E,T);
-      WA.GetTriggers(thresh,trig[ch].E,trig[ch].T);//replaced
-      TL.SetTriggerList(ch,trig[ch].E,trig[ch].T);
+      vector<trigger_t> triglist;
+      WA.GetTriggers(thresh,triglist);
+      for (int i=0;i<triglist.size();i++)
+	triglist[i].ch = ch;
+      TL.AddTriggers(triglist);
     }
-    TL.OrderTriggerList();
-    int tottrig = 0;
-    for (int ch=0;ch<RootFile.NI_event.numch;ch++)
-      tottrig += trig[ch].E.size();
-    if (ev == debugev) cout << endl << "tottrig is " << tottrig << endl;
-    vector<triglist_t> triglist;
-    triglist.resize(tottrig);
-    int cnt = 0;
-    //order the triggers    
-    if (ev == debugev) cout << "ordering" << endl;
-    if (tottrig > 0) {
-      for (int ch=0;ch<RootFile.NI_event.numch;ch++){
-	for (int j=0;j<trig[ch].E.size();j++) {
-	  triglist[cnt].ch = ch;
-	  triglist[cnt].myE = &trig[ch].E[j];
-	  triglist[cnt].myT = &trig[ch].T[j];
-	  if (ev == debugev) cout << "Found " << *triglist[cnt].myT << " from ch " << ch << endl;
-	  triglist[cnt].prev = NULL;
-	  triglist[cnt].next = NULL;
-	  if (cnt > 0) {
-	    triglist_t* check = &triglist[0];
-	    if (ev == debugev) cout << "compare " << *triglist[cnt].myT << " and " << *check->myT << endl;
-	    if (*triglist[cnt].myT > *check->myT) {
-	      while (*triglist[cnt].myT > *check->myT && check->next != NULL) {
-		if (ev == debugev) cout << *triglist[cnt].myT << " > " << *check->myT << ", moving forward" << endl;
-		check = check->next;
-	      }
-	      if (*triglist[cnt].myT <= *check->myT) {
-		triglist[cnt].next = check;
-		triglist[cnt].prev = check->prev;
-		check->prev = &triglist[cnt];
-		if (triglist[cnt].prev != NULL)
-		  triglist[cnt].prev->next = &triglist[cnt];
-		if (ev == debugev) cout << "placing before " << *check->myT << endl;
-	      }
-	      else{
-		triglist[cnt].prev = check;
-		triglist[cnt].next = check->next;
-		check->next = &triglist[cnt];
-		if (triglist[cnt].next != NULL)
-		  triglist[cnt].next->prev = &triglist[cnt];
-		if (ev == debugev) cout << "placing after " << *check->myT << endl;
-	      }
-	    }
-	    else {
-	      while (*triglist[cnt].myT < *check->myT && check->prev != NULL) {
-		if (ev == debugev) cout << *triglist[cnt].myT << " < " << *check->myT << ", moving backward" << endl;
-		check = check->prev;
-	      }
-	      if (*triglist[cnt].myT >= *check->myT) {
-		triglist[cnt].prev = check;
-		triglist[cnt].next = check->next;
-		check->next = &triglist[cnt];
-		if (triglist[cnt].next != NULL)
-		  triglist[cnt].next->prev = &triglist[cnt];
-		if (ev == debugev) cout << "placing after " << *check->myT << endl;
-	      }
-	      else {
-		triglist[cnt].next = check;
-		triglist[cnt].prev = check->prev;
-		check->prev = &triglist[cnt];
-		if (triglist[cnt].prev != NULL)
-		  triglist[cnt].prev->next = &triglist[cnt];
-		if (ev == debugev) cout << "placing before " << *check->myT << endl;
-	      }
-	    }// if !(*triglist[cnt].myT > *check->myT)
-	    if (ev == debugev) {
-	      cout << "Current status at cnt " << *check->myT << endl;
-	      for (int c=0;c<=cnt;c++) {
-		cout << "this " << &triglist[c] << endl;
-		cout << "prev " << triglist[c].prev << endl;
-		cout << "next " << triglist[c].next << endl;
-	      }
-	      cout << endl;
-	    }
-	  }// if (cnt > 0)
-	  cnt++;
-	}//j < size
-      }//ch < numch
-      triglist_t* check = &triglist[0];
-      while (check->prev != NULL)
-	check = check->prev;
-      double checkt = *check->myT;
-      do{
-	TrigFile.Trig_event.E = *check->myE;
-	TrigFile.Trig_event.t = *check->myT + (double)RootFile.NI_event.timestamp;
-	double checkE, checkT; int checkch;
-	TL.GetTrigger(checkch, checkE, checkT);
-	if (checkch != check->ch) {cout << "channel mismatch" << endl;}
-	if (checkE != *check->myE) {cout << "E mismatch" << endl;}
-	if (checkT != *check->myT) {cout << "T mismatch" << endl;}
-	if (TrigFile.Trig_event.t < checkt ) {
-	  cout << "Problem, " << TrigFile.Trig_event.t << " after " << checkt <<", event " << ev << endl;
-	  cout << "ch " << check->ch << endl;
-	}
-	int checkt = TrigFile.Trig_event.t;
-	TrigFile.Trig_event.rio = RootFile.NI_event.ch[check->ch].rio;
-	TrigFile.Trig_event.rio_ch = RootFile.NI_event.ch[check->ch].ch;
-	TrigFile.Trig_event.chan = check->ch;
-	if (ev == debugev) cout << "timestamp=" << RootFile.NI_event.timestamp << endl;
-	if (ev == debugev) cout << "time " << *check->myT << endl;
-	if (ev == debugev) cout << "t " << TrigFile.Trig_event.t << endl;
-	if (ev == debugev) cout << "E " << TrigFile.Trig_event.E << endl;
-	if (ev == debugev) cout << "rio" << TrigFile.Trig_event.rio << endl;
-	if (ev == debugev) cout << "rio_ch" << TrigFile.Trig_event.rio_ch << endl;
-	if (ev == debugev) cout << "chan " << TrigFile.Trig_event.chan << endl;
-	TrigFile.FillTree();
-      }while ((check = check->next)!=NULL);
-    }//tottrig > 0
+    TL.OrderTriggers();
+    //-----Write to tree
+    trigger_t nexttrig;
+    while (TL.GetTrigger(nexttrig)) {
+      TrigFile.Trig_event.E = nexttrig.E;
+      TrigFile.Trig_event.t = nexttrig.T + (double)RootFile.NI_event.timestamp;
+      TrigFile.Trig_event.rio = RootFile.NI_event.ch[nexttrig.ch].rio;
+      TrigFile.Trig_event.rio_ch = RootFile.NI_event.ch[nexttrig.ch].ch;
+      TrigFile.Trig_event.chan = nexttrig.ch;
+      TrigFile.FillTree();
+    }
   }//ev < NumEvents
   TrigFile.Write();
 }
