@@ -85,7 +85,7 @@ bool RawFile::Open(std::string filename) {
     //3. Check INPUT_PATH defined in UCNConfig.hh
     //4. Check environmental variables (getenv("RAW_DATA_DIR"))
     std::string name = filename; 
-    const int ntrypath = 7;
+    const int ntrypath = 6;
     std::string trypath[] = {".","file","File","files","Files",
 			      INPUT_PATH/*,getenv("RAW_DATA_DIR")*/};
     int tp = 0;

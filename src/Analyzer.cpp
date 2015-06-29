@@ -138,6 +138,7 @@ void DoRaw(int filenum) {
   RawFile InputFile(filenum);
   if (!InputFile.IsOpen()) {
     cout << "File Not Open!" << endl;
+    return;
   }
   cout << "Processing raw file " << filenum << endl;
   ROOTTreeFile RootFile;
