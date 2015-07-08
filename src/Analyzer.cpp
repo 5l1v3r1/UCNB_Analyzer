@@ -20,27 +20,16 @@
 #include "RawFile.hh"
 #include "ROOTTreeFile.hh"
 #include "TrigTreeFile.hh"
+#include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
 #include "TriggerList.hh"
 //#include "TInterpreter.h"
 //#pragma link C++ class vector<Short_t>+;
 
-
-struct trigs_t{
-  vector<Double_t> E;
-  vector<Double_t> T;
-};
-struct triglist_t{
-  triglist_t* prev;
-  triglist_t* next;  
-  Double_t *myE;
-  Double_t *myT;
-  Int_t ch;
-};
-
 void Usage(std::string program);
 void DoRaw(int filenum);
 void DoTrap(int filenum, int thresh);
+void DoColl(int filenum, int smp);
 
 
 /*************************************************************************/
@@ -52,8 +41,8 @@ int main (int argc, char *argv[]) {
   
   cout << "Welcome to the NI DAQ Analyzer " << endl;
 
-  bool doraw = false, dotrap = false, fileok = false;
-  int i=1, filenum1, filenum2, thresh;
+  bool doraw = false, dotrap = false, docoll = false, fileok = false;
+  int i=1, filenum1, filenum2, thresh, smpcoll;
 
   //Parse parameters
   while (i+1 <= argc) {
@@ -100,6 +89,22 @@ int main (int argc, char *argv[]) {
       thresh = atoi(argv[i]);
       i++;
     }
+    else if (strcmp(argv[i],"-coll")==0) {
+      docoll = true;
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -coll" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -coll" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      smpcoll = atoi(argv[i]);
+      i++;      
+    }
     else {
       cout << "Unrecognized parameter" << endl;
       Usage(argv[0]);
@@ -107,10 +112,10 @@ int main (int argc, char *argv[]) {
     }
   }
 
-  if (!fileok || (!doraw && !dotrap)) {
+  if (!fileok || (!doraw && !dotrap && !docoll)) {
     if (!fileok)
       cout << "No file indicated" << endl;
-    if (!doraw && !dotrap)
+    if (!doraw && !dotrap && !docoll)
       cout << "What do you want to do? " << endl;
     Usage(argv[0]);
     return 1;
@@ -120,6 +125,8 @@ int main (int argc, char *argv[]) {
       DoRaw(filenum);
     if (dotrap)
       DoTrap(filenum, thresh);
+    if (docoll)
+      DoColl(filenum, smpcoll);
   }
 
   cout << "Done." << endl;
@@ -131,6 +138,7 @@ void Usage(std::string program) {
   cout << "Usage: " << program  << " -f #1 [#2]" << endl;
   cout << "-raw to convert .bin files to .root" << endl;
   cout << "-trap <threshold> to filter waveforms" << endl;
+  cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
 }
 
 void DoRaw(int filenum) {
@@ -149,6 +157,8 @@ void DoRaw(int filenum) {
     RootFile.FillTree();
   }
   RootFile.Write();
+  RootFile.Close();
+  InputFile.Close();
 }
 
 void DoTrap(int filenum, int thresh) {
@@ -166,7 +176,6 @@ void DoTrap(int filenum, int thresh) {
   TriggerList TL;
   int nentries = RootFile.GetNumEvents();
   for (int ev=0;ev<nentries;ev++) {
-    //for (int ev=0;ev<10;ev++) {
     printf("Working....%d/%d  (%d \%)\r",ev,nentries,100*ev/nentries);
     RootFile.GetEvent(ev);
     TL.Reset();
@@ -191,6 +200,55 @@ void DoTrap(int filenum, int thresh) {
     }
   }//ev < NumEvents
   TrigFile.Write();
+  cout << "Done" << endl;
+  TrigFile.Close();
+  RootFile.Close();
+}
+
+void DoColl(int filenum, int smp) {
+  //Not yet working
+  cout << "Collecting single-event coincidences in file " << filenum << endl;
+  //-----Open input/output files
+  ROOTTreeFile RootFile;
+  if (!RootFile.Open(filenum)) {
+    cout << "Raw ROOT file Not Open!" << endl;
+    return;
+  }
+  RootFile.GetEvent(0);
+  int numch = RootFile.NI_event.numch; //Store in trig file?
+  RootFile.Close();
+  TrigTreeFile TrigFile;
+  if (!TrigFile.Open(filenum)) {
+    cout << "Trig file Not Open!" << endl;
+    return;
+  }
+  EventTreeFile EventFile;
+  EventFile.Create(filenum);
+  int nentries = TrigFile.GetNumEvents();
+  EventFile.myEvent.numch = numch;
+  int StartEv = 0;
+  do {
+    //-----Get start trigger of event
+    printf("Working....%d/%d  (%d \%)\r",StartEv,nentries,100*StartEv/nentries);
+    for (int ch=0;ch<numch;ch++)
+      EventFile.myEvent.E[ch] = 0;
+    TrigFile.GetEvent(StartEv);
+    EventFile.myEvent.t = TrigFile.Trig_event.t;
+    //-----Get triggers within window
+    int ev = StartEv;
+    do {
+      EventFile.myEvent.E[TrigFile.Trig_event.chan] = TrigFile.Trig_event.E;
+      ev++;
+      if (ev < nentries)
+	TrigFile.GetEvent(ev);
+    }while (ev < nentries && (TrigFile.Trig_event.t - EventFile.myEvent.t)<smp);
+    EventFile.FillTree();
+    StartEv = ev;
+  } while (StartEv < nentries);      
+  EventFile.Write();
+  cout << "Done" << endl;
+  EventFile.Close();
+  TrigFile.Close();
 }
 
 #endif // __ANALYZER_CPP__
