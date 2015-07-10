@@ -7,6 +7,7 @@
 // 2015/5/6:  LJB  Created 
 // 2015/5/11: LJB  Converts raw files into ROOT files
 // 2015/5/14: LJB  Applies trap trigger
+// 2015/7/8:  LJB  Sorts charge-sharing coincidences into events
 
 #ifndef ANALYZER_CPP__
 #define ANALYZER_CPP__
@@ -224,8 +225,8 @@ void DoColl(int filenum, int smp) {
   }
   EventTreeFile EventFile;
   EventFile.Create(filenum);
+  EventFile.SetupTree(numch);
   int nentries = TrigFile.GetNumEvents();
-  EventFile.myEvent.numch = numch;
   int StartEv = 0;
   do {
     //-----Get start trigger of event
@@ -244,7 +245,7 @@ void DoColl(int filenum, int smp) {
     }while (ev < nentries && (TrigFile.Trig_event.t - EventFile.myEvent.t)<smp);
     EventFile.FillTree();
     StartEv = ev;
-  } while (StartEv < nentries);      
+  } while (StartEv < nentries);
   EventFile.Write();
   cout << "Done" << endl;
   EventFile.Close();

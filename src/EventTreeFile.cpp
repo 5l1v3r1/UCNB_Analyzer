@@ -1,10 +1,11 @@
 // File: EventTreeFile.cpp
 // Name: Leah Broussard
-// Date: 2015/5/29
+// Date: 2015/6/29
 // Purpose: Handles ROOT TTree file with events E[numch],t
 //
 // Revision History:
-// 2015/5/29:  LJB  Created
+// 2015/6/29:  LJB  Created
+// 2015/7/8:   LJB  TTree fix: added SetupTree method
  
 
 #ifndef EVENT_TREE_FILE_CPP__
@@ -18,6 +19,9 @@ EventTreeFile::EventTreeFile() {
   RootFile = 0;
   RootTree = 0;
   createmode = false;
+  setup = false;
+  for (int i=0;i<MAXCH*NRIO;i++)
+    myEvent.E[i] = 0;
 }
 
 /*************************************************************************/
@@ -39,6 +43,7 @@ void EventTreeFile::Close() {
   RootFile = 0;
   RootTree = 0;
   createmode = false;
+  setup = false;
 }
 
 /*************************************************************************/
@@ -135,11 +140,6 @@ bool EventTreeFile::Create(std::string path, std::string name) {
     return false;
   }
 
-  RootTree = new TTree("t","t");
-  RootTree->Branch("numch",&myEvent.E,"numch/I");
-  RootTree->Branch("E",&myEvent.E[0],"E[numch]/D");
-  RootTree->Branch("t",&myEvent.t,"t/D");
-
   createmode = true;
   return true;
 }
@@ -180,6 +180,34 @@ bool EventTreeFile::Create(int filenum){
 #endif // !defined (__CINT__)
 
 /*************************************************************************/
+//                             SetupTree 
+/*************************************************************************/
+void EventTreeFile::SetupTree(int numch){
+  setup = false;
+  if (!RootFile->IsOpen()) {
+    std::cout << "File not open" << std::endl;
+    return;
+  }
+  if (RootTree != 0) {
+    delete RootTree;
+  }
+  if (!createmode) {
+    std::cout << "Create new file first" << std::endl;
+    return;    
+  }
+  myEvent.numch = numch;
+  RootTree = new TTree("t","t");
+  TString Estr = "E[";
+  Estr += myEvent.numch;
+  Estr += "]/D";
+  RootTree->Branch("E",&myEvent.E[0],Estr);
+  RootTree->Branch("t",&myEvent.t,"t/D");
+
+  setup = true;
+}
+
+
+/*************************************************************************/
 //                              FillTree 
 /*************************************************************************/
 void EventTreeFile::FillTree(){
@@ -195,6 +223,11 @@ void EventTreeFile::FillTree(){
     std::cout << "Create new file first" << std::endl;
     return;    
   }
+  if (!setup) {
+    std::cout << "Set up tree first" << std::endl;
+    return;
+  }
+
   RootFile->cd();
   RootTree->Fill();
 }
