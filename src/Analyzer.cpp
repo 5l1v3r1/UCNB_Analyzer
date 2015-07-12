@@ -228,6 +228,14 @@ void DoColl(int filenum, int smp) {
   EventFile.SetupTree(numch);
   int nentries = TrigFile.GetNumEvents();
   int StartEv = 0;
+  if (nentries == 0){
+    EventFile.Write();
+    cout << "No triggers: done" << endl;
+    EventFile.Close();
+    TrigFile.Close();
+    return;
+  }
+    
   do {
     //-----Get start trigger of event
     printf("Working....%d/%d  (%d \%)\r",StartEv,nentries,100*StartEv/nentries);

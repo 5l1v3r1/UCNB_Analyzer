@@ -65,7 +65,7 @@ bool EventTreeFile::Open(std::string path, std::string name){
   createmode = false;
 
   RootTree = (TTree*)RootFile->Get("t");
-  RootTree->SetBranchAddress("numch",&myEvent.numch);
+  //  RootTree->SetBranchAddress("numch",&myEvent.numch);
   RootTree->SetBranchAddress("E",&myEvent.E[0]);
   RootTree->SetBranchAddress("t",&myEvent.t);
 
@@ -100,7 +100,7 @@ bool EventTreeFile::Open(std::string filename){
 
 bool EventTreeFile::Open(int filenum){
   char tempstr[255];
-  sprintf(tempstr,"trig%05d.root",filenum);
+  sprintf(tempstr,"ev%05d.root",filenum);
   std::string filename = tempstr;
   return Open(filename);
 }
