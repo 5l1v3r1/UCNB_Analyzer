@@ -25,7 +25,7 @@ WaveformAnalyzer::WaveformAnalyzer() {
   decaytime = 247;
   risetime = 250;
   risetop = 280;
-  pretrigger = 300;
+  pretrigger = 200;
   dodraw = true;
   setup = false;
 }
