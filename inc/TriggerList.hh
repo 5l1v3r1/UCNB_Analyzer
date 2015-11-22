@@ -17,6 +17,7 @@
 
 //#include "TSystem.h"
 #include "Rtypes.h"
+#include "TMath.h"
 #include "Trigger.hh"
 
 using std::vector;
@@ -46,6 +47,7 @@ public:
   void AddTriggers(vector<trigger_t> addtrigs);
   void OrderTriggers();
   bool GetTrigger(trigger_t &trig);
+  bool GetMaxTrigger(trigger_t &trig);
 };
 
 #endif // TRIGGERLIST_HH__

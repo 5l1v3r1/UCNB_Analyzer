@@ -68,9 +68,15 @@ bool TrigTreeFile::Open(std::string path, std::string name){
 
   RootTree->SetBranchAddress("E",&Trig_event.E);
   RootTree->SetBranchAddress("t",&Trig_event.t);
+  RootTree->SetBranchAddress("shaping",&Trig_event.shaping);
+  RootTree->SetBranchAddress("integ",&Trig_event.integ);
+  RootTree->SetBranchAddress("trapE",&Trig_event.trapE);
+  RootTree->SetBranchAddress("trapT",&Trig_event.trapT);
+  RootTree->SetBranchAddress("chi2",&Trig_event.chi2);
   RootTree->SetBranchAddress("rio",&Trig_event.rio);
   RootTree->SetBranchAddress("rio_ch",&Trig_event.rio_ch);
   RootTree->SetBranchAddress("chan",&Trig_event.chan);
+  RootTree->SetBranchAddress("waveev",&Trig_event.waveev);
 
   RootTree->GetEntry(0);
   return true;
@@ -146,9 +152,15 @@ bool TrigTreeFile::Create(std::string path, std::string name) {
   RootTree = new TTree("t","t");
   RootTree->Branch("E",&Trig_event.E,"E/D");
   RootTree->Branch("t",&Trig_event.t,"t/D");
+  RootTree->Branch("shaping",&Trig_event.shaping,"shaping/D");
+  RootTree->Branch("integ",&Trig_event.integ,"integ/D");
+  RootTree->Branch("chi2",&Trig_event.chi2,"chi2/D");
+  RootTree->Branch("trapE",&Trig_event.trapE,"trapE/D");
+  RootTree->Branch("trapT",&Trig_event.trapT,"trapT/D");
   RootTree->Branch("rio",&Trig_event.rio,"rio/I");
   RootTree->Branch("rio_ch",&Trig_event.rio_ch,"rio_ch/I");
   RootTree->Branch("chan",&Trig_event.chan,"chan/I");
+  RootTree->Branch("waveev",&Trig_event.waveev,"waveev/I");
 
   createmode = true;
   return true;

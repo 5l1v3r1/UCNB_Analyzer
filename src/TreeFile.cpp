@@ -1,40 +1,41 @@
-// File: EventTreeFile.cpp
+// File: TreeFile.cpp
 // Name: Leah Broussard
-// Date: 2015/6/29
-// Purpose: Handles ROOT TTree file with events E[numch],t
+// Date: 2015/5/8
+// Purpose: Handles ROOT TTree files
 //
 // Revision History:
-// 2015/6/29:  LJB  Created
-// 2015/7/8:   LJB  TTree fix: added SetupTree method
+// 2015/5/8:   LJB  Created
+// 2015/5/11:  LJB  Read/write ROOT files with Tree
+// 2015/11/21: LJB  mypath bug fix
  
 
-#ifndef EVENT_TREE_FILE_CPP__
-#define EVENT_TREE_FILE_CPP__
-#include "EventTreeFile.hh"
+#ifndef TREE_FILE_CPP__
+#define TREE_FILE_CPP__
+
+#include "TreeFile.hh"
 
 /*************************************************************************/
 //                            Constructor
 /*************************************************************************/
-EventTreeFile::EventTreeFile() {
+TreeFile::TreeFile() {
   RootFile = 0;
   RootTree = 0;
   createmode = false;
-  setup = false;
-  for (int i=0;i<MAXCH*NRIO;i++)
-    myEvent.E[i] = 0;
+  mypath = "";
+  pathset = false;
 }
 
 /*************************************************************************/
 //                              Destructor
 /*************************************************************************/
-EventTreeFile::~EventTreeFile() {
+TreeFile::~TreeFile() {
   Close();
 }
 
 /*************************************************************************/
 //                               Close   
 /*************************************************************************/
-void EventTreeFile::Close() {
+void TreeFile::Close() {
   if (RootFile != 0) {
     if (RootFile->IsOpen())
       RootFile->Close();
@@ -43,18 +44,18 @@ void EventTreeFile::Close() {
   RootFile = 0;
   RootTree = 0;
   createmode = false;
-  setup = false;
 }
 
 /*************************************************************************/
 //                                Open   
 /*************************************************************************/
-bool EventTreeFile::Open(std::string path, std::string name){
+bool TreeFile::Open(std::string path, std::string name){
   Close();
   std::string filename = path;
   filename.append("/");
   filename.append(name);
   if (gSystem->AccessPathName(filename.c_str())) {
+    //cout << filename << " not found " << endl;
     return false;
   }
   RootFile = new TFile(filename.c_str());
@@ -65,31 +66,26 @@ bool EventTreeFile::Open(std::string path, std::string name){
   createmode = false;
 
   RootTree = (TTree*)RootFile->Get("t");
-  //  RootTree->SetBranchAddress("numch",&myEvent.numch);
-  RootTree->SetBranchAddress("E",&myEvent.E[0]);
-  RootTree->SetBranchAddress("t",&myEvent.t);
-  RootTree->SetBranchAddress("waveev",&myEvent.waveev);
 
-  RootTree->GetEntry(0);
   return true;
 }
 
-bool EventTreeFile::Open(std::string filename){
+bool TreeFile::Open(std::string filename){
   std::size_t pos = filename.rfind("/");
   if (pos!=std::string::npos) {
     std::string path = filename.substr(0,pos+1);
     std::string name = filename.substr(pos+1,filename.length());
     return Open(path, name);
   }
+  if (pathset) {
+    return Open(mypath,filename);
+  }
   else { //no path in filename
     //1. Check local directory
-    //2. Check Files/ directory
-    //3. Check EVENT_PATH defined in LocalCFG.hh
-    //4. Check environmental variables (e.g. getenv("RAW_DATA_DIR"))
+    //2. Check variants on Files/ directory
     std::string name = filename; 
-    const int ntrypath = 6;
-    std::string trypath[] = {".","file","File","files","Files",
-			      EVENT_PATH/*,getenv("RAW_DATA_DIR")*/};
+    const int ntrypath = 5;
+    std::string trypath[] = {".","file","File","files","Files"};
     int tp = 0;
     bool success = false;
     do {
@@ -99,17 +95,11 @@ bool EventTreeFile::Open(std::string filename){
   }
 }
 
-bool EventTreeFile::Open(int filenum){
-  char tempstr[255];
-  sprintf(tempstr,"ev%05d.root",filenum);
-  std::string filename = tempstr;
-  return Open(filename);
-}
 
 /*************************************************************************/
 //                                IsOpen 
 /*************************************************************************/
-bool EventTreeFile::IsOpen() {
+bool TreeFile::IsOpen() {
   if (RootFile == 0) {
     return false;
   }
@@ -126,93 +116,59 @@ bool EventTreeFile::IsOpen() {
 /*************************************************************************/
 //                               Create  
 /*************************************************************************/
-bool EventTreeFile::Create(std::string path, std::string name) {
-  Close();
-  std::string filename = path;
-  if (gSystem->AccessPathName(filename.c_str())) {
-    return false;
-  }
-  filename.append("/");
-  filename.append(name);
-  RootFile = new TFile(filename.c_str(),"RECREATE");
-  if (!RootFile->IsOpen()) {
-    cout << "Failed to create Event TFile" << endl;
-    Close();
-    return false;
-  }
+bool TreeFile::Create(std::string path, std::string name) {
+	Close();
+	std::string filename = path;
+	if (gSystem->AccessPathName(filename.c_str())) {
+		return false;
+	}
+	filename.append("/");
+	filename.append(name);
+	RootFile = new TFile(filename.c_str(),"RECREATE");
+	if (!RootFile->IsOpen()) {
+		cout << "Failed to create ROOT TFile" << endl;
+		Close();
+		return false;
+	}
+	std::cout << "Writing " << filename << endl;
 
-  createmode = true;
-  return true;
+	RootTree = new TTree("t","t");
+
+	createmode = true;
+	return true;
 }
 
-bool EventTreeFile::Create(std::string filename) {
-  std::size_t pos = filename.rfind("/");
-  if (pos!=std::string::npos) {
-    std::string path = filename.substr(0,pos+1);
-    std::string name = filename.substr(pos+1,filename.length());
-    return Create(path, name);
-  }
-  else { //no path in filename
-    //1. Use EVENT_PATH defined in LocalCFG.hh
-    //2. Use environmental variables (e.g. getenv("RAW_DATA_DIR"))
-    //3. Use Files/ directory
-    //4. Use local directory
-    std::string name = filename; 
-    const int ntrypath = 6;
-    std::string trypath[] = {EVENT_PATH,/*getenv("RAW_DATA_DIR"),*/
-			     "file","File","files","Files","."};
-    int tp = 0;
-    bool success = false;
-    do {
-      success = Create(trypath[tp],name);
-    }while (++tp<ntrypath && !success);
-
-    return success;
-  }
-}
-
-bool EventTreeFile::Create(int filenum){
-  char tempstr[255];
-  sprintf(tempstr,"ev%05d.root",filenum);
-  std::string filename = tempstr;
-  return Create(filename);
+bool TreeFile::Create(std::string filename) {
+	std::size_t pos = filename.rfind("/");
+	if (pos!=std::string::npos) {
+		std::string path = filename.substr(0,pos+1);
+		std::string name = filename.substr(pos+1,filename.length());
+		return Create(path, name);
+	}
+	if (pathset) {
+		return Create(mypath,filename);
+	}
+	else { //no path in filename
+		//1. Check local directory
+		//2. Check variants on Files/ directory
+		std::string name = filename; 
+		const int ntrypath = 5;
+		std::string trypath[] = {".","file","File","files","Files"};
+		int tp = 0;
+		bool success = false;
+		do {
+			success = Create(trypath[tp],name);
+		}while (++tp<ntrypath && !success);
+		return success;
+	}
 }
 
 #endif // !defined (__CINT__)
 
 /*************************************************************************/
-//                             SetupTree 
-/*************************************************************************/
-void EventTreeFile::SetupTree(int numch){
-  setup = false;
-  if (!RootFile->IsOpen()) {
-    std::cout << "File not open" << std::endl;
-    return;
-  }
-  if (RootTree != 0) {
-    delete RootTree;
-  }
-  if (!createmode) {
-    std::cout << "Create new file first" << std::endl;
-    return;    
-  }
-  myEvent.numch = numch;
-  RootTree = new TTree("t","t");
-  TString Estr = "E[";
-  Estr += myEvent.numch;
-  Estr += "]/D";
-  RootTree->Branch("E",&myEvent.E[0],Estr);
-  RootTree->Branch("t",&myEvent.t,"t/D");
-  RootTree->Branch("waveev",&myEvent.waveev,"waveev/I");
-
-  setup = true;
-}
-
-
-/*************************************************************************/
 //                              FillTree 
 /*************************************************************************/
-void EventTreeFile::FillTree(){
+void TreeFile::FillTree(){
   if (!RootFile->IsOpen()) {
     std::cout << "File not open" << std::endl;
     return;
@@ -225,11 +181,6 @@ void EventTreeFile::FillTree(){
     std::cout << "Create new file first" << std::endl;
     return;    
   }
-  if (!setup) {
-    std::cout << "Set up tree first" << std::endl;
-    return;
-  }
-
   RootFile->cd();
   RootTree->Fill();
 }
@@ -237,7 +188,7 @@ void EventTreeFile::FillTree(){
 /*************************************************************************/
 //                                Write  
 /*************************************************************************/
-void EventTreeFile::Write(){
+void TreeFile::Write(){
   if (!RootFile->IsOpen()) {
     std::cout << "File not open" << std::endl;
     return;
@@ -255,7 +206,7 @@ void EventTreeFile::Write(){
 /*************************************************************************/
 //                               GetEvent  
 /*************************************************************************/
-void EventTreeFile::GetEvent(Int_t ev){
+void TreeFile::GetEvent(Int_t ev){
   if (!RootFile->IsOpen()) {
     std::cout << "File not open" << std::endl;
     return;
@@ -263,5 +214,5 @@ void EventTreeFile::GetEvent(Int_t ev){
   RootTree->GetEntry(ev);
 }
 
-#endif // EVENT_TREE_FILE_CPP__
+#endif // TREE_FILE_CPP__
 

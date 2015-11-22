@@ -34,6 +34,7 @@ private:
     Double_t E[MAXCH*NRIO];
     Double_t t;
     Int_t numch;
+    Int_t waveev;
   };
   TFile* RootFile;
   TTree* RootTree;

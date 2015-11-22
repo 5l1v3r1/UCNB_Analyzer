@@ -107,14 +107,40 @@ void TriggerList::OrderTriggers() {
 }
 
 /*************************************************************************/
+//                            GetMaxTrigger
+/*************************************************************************/
+bool TriggerList::GetMaxTrigger(trigger_t &trig) {
+  if (triggerlist.size() ==0 ) return false;
+  double max = -1;
+  int maxi = -1;
+  for (int i=0;i<triggerlist.size();i++) {
+    if (max < TMath::Abs(triggerlist[i].E)) {
+      max = TMath::Abs(triggerlist[i].E);
+      maxi = i;
+    }
+  }
+  trig = triggerlist[maxi];
+  return true;
+}
+
+
+/*************************************************************************/
 //                            GetNextTrigger
 /*************************************************************************/
 bool TriggerList::GetTrigger(trigger_t &trig) {
   if (!ordered) {cout << "Call OrderTriggerList first" << endl; return false;}
   if (check == NULL) return false;
+  trig = *check->mytrig;
+  /*
   trig.ch = check->mytrig->ch;
   trig.E = check->mytrig->E;
   trig.T = check->mytrig->T;
+  trig.Shaping = check->mytrig->Shaping;
+  trig.Integration = check->mytrig->Integration;
+  trig.Chi2 = check->mytrig->Chi2;
+  trig.TrapE = check->mytrig->TrapE;
+  trig.TrapT = check->mytrig->TrapT;
+  */
   check = check->next;
   return true;
 }
