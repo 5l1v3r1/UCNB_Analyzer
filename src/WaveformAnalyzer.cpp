@@ -6,6 +6,7 @@
 // Revision History:
 // 2013/4/11: LJB  Adapt from Ne19 code
 // 2015/5/11: LJB  Adapt to NI format
+// 2015/1/2:  LJB  Cleaned up GetTriggers routine
 
 #ifndef WAVEFORM_ANALYZER_CPP__
 #define WAVEFORM_ANALYZER_CPP__
@@ -40,7 +41,7 @@ WaveformAnalyzer::WaveformAnalyzer() {
   risetime = 250;
   top = 400;
   risetop = top+risetime;
-  pretrigger = 200;
+  pretrigger = 500;
 //
   dodraw = true;
   setup = false;
@@ -201,59 +202,35 @@ void WaveformAnalyzer::FitWave(Long64_t thresh, vector<trigger_t> &triglist) {
 /*************************************************************************/
 void WaveformAnalyzer::GetTriggers(Long64_t thresh, vector<Double_t> &E, vector<Double_t> &T)
 {
-  Short_t up = 0;
-  Short_t down = 0;
-
-  E.resize(0);
-  T.resize(0);
-  if (!setup) return;
-  if (!CheckBaseline()) return;
-  double min, max;
-  int minloc, maxloc;
-  for (int smp = 0; smp < wavelen; smp++) {
-    if(s_trap[smp]<=-1.*thresh && s_trap[smp-1]>-1.*thresh)
-      {
-	down=smp;
-	minloc = down;
-	min = s_trap[smp];
-	smp++;
-	while(s_trap[smp]<=-1.*thresh && smp<wavelen) {
-	  if (min > s_trap[smp]) {
-	    min = s_trap[smp];
-	    minloc = smp;
-	  }
-	  smp++;
+	E.resize(0);
+	T.resize(0);
+	if (!setup) return;
+	if (!CheckBaseline()) return;
+	double min, max;
+	int minloc, maxloc;
+	short start=0, stop=0;
+	for (int smp = 0; smp < wavelen; smp++) {
+		double sign = (s_trap[smp] >= 0) ? 1. : -1.;
+		if (s_trap[smp]*sign>thresh && s_trap[smp-1]*sign<=thresh) {
+			start=smp;
+			maxloc=start;
+			max=s_trap[smp]*sign;
+			smp++;
+			while(s_trap[smp]*sign>=thresh && smp<wavelen) {
+				if (max < s_trap[smp]*sign) {
+					max = s_trap[smp]*sign;
+					maxloc = smp;
+				}
+				smp++;
+			}
+			stop=smp;
+			if(stop - start > top*0.75) {
+				max=max*sign;
+				E.push_back(max);
+				T.push_back(maxloc);
+			}
+		}
 	}
-	up=smp;
-	if(up != 0) {
-	  E.push_back(min);
-	  T.push_back(minloc);
-	  //E.push_back((double)(s_trap[(up+down)/2.]));
-	  //T.push_back((double)((up+down)/2.)-risetime);//-risetop/2.));
-	}
-      }
-    if(s_trap[smp]>=thresh && s_trap[smp-1]<thresh)
-      {
-	up=smp;
-	maxloc = up;
-	max = s_trap[smp];
-	smp++;
-	while(s_trap[smp]>=thresh && smp<wavelen) {
-	  if (max < s_trap[smp]) {
-	    max = s_trap[smp];
-	    maxloc = smp;
-	  }
-	  smp++;
-	}
-	down=smp;
-	if(down != 0) {
-	  E.push_back(max);
-	  T.push_back(maxloc);
-	  //E.push_back((double)(s_trap[(up+down)/2.]));
-	  //T.push_back((double)((up+down)/2.)-risetime);//-risetop/2.));
-	}
-      }
-  }
 
 }
 
@@ -261,94 +238,127 @@ void WaveformAnalyzer::GetTriggers(Long64_t thresh, vector<Double_t> &E, vector<
 //                            GetTriggers
 /*************************************************************************/
 void WaveformAnalyzer::GetTriggers(Long64_t thresh, vector<trigger_t> &triglist) {
-  trigger_t thetrig;
+	trigger_t thetrig;
   
-  triglist.resize(0);
-  if (!setup) return;
-  if (!CheckBaseline()) return;
-  double min, max;
-  int minloc, maxloc;
-  short up, down;
-  for (int smp = 0; smp < wavelen; smp++) {
-    if(s_trap[smp]<=-1.*thresh && s_trap[smp-1]>-1.*thresh)
-      {
-	down=smp;
-	minloc = down;
-	min = s_trap[smp];
-	smp++;
-	while(s_trap[smp]<=-1.*thresh && smp<wavelen) {
-	  if (min > s_trap[smp]) {
-	    min = s_trap[smp];
-	    minloc = smp;
-	  }
-	  smp++;
+	triglist.resize(0);
+	if (!setup) return;
+	if (!CheckBaseline()) return;
+	double min, max;
+	int minloc, maxloc;
+	short start=0, stop=0;
+	for (int smp = 0; smp < wavelen; smp++) {
+		double sign = (s_trap[smp] >= 0) ? 1. : -1.;
+		if (s_trap[smp]*sign>thresh && s_trap[smp-1]*sign<=thresh) {
+			start=smp;
+			maxloc=start;
+			max=s_trap[smp]*sign;
+			smp++;
+			while(s_trap[smp]*sign>=thresh && smp<wavelen) {
+				if (max < s_trap[smp]*sign) {
+					max = s_trap[smp]*sign;
+					maxloc = smp;
+				}
+				smp++;
+			}
+			stop=smp;
+			if(stop - start > top*0.75) {
+				max=max*sign;
+				thetrig.up = start;
+				thetrig.down = stop;
+				thetrig.E = max;
+				thetrig.AveTrapE = 0;
+				for (int j=start;j<stop;j++)
+					thetrig.AveTrapE += s_trap[j];
+				thetrig.AveTrapE = thetrig.AveTrapE/(stop-start);
+				thetrig.MidTrapE = s_trap[(stop+start)/2.];
+				thetrig.TrapE = max;
+				thetrig.T = maxloc;
+				thetrig.TrapT = maxloc;
+				triglist.push_back(thetrig);
+			}
+		}
 	}
-	up=smp;
-	if(up != 0) {
-	  thetrig.up = up;
-	  thetrig.down = down;
-	  thetrig.E = min;
-	  thetrig.AveTrapE = min;
-	  thetrig.MidTrapE = min;
-	  thetrig.TrapE = min;
-	  thetrig.T = minloc;
-	  thetrig.TrapT = minloc;
-	  triglist.push_back(thetrig);
-	}
-      }
-    if(s_trap[smp]>=thresh && s_trap[smp-1]<thresh)
-      {
-	up=smp;
-	maxloc = up;
-	max = s_trap[smp];
-	smp++;
-	while(s_trap[smp]>=thresh && smp<wavelen) {
-	  if (max < s_trap[smp]) {
-	    max = s_trap[smp];
-	    maxloc = smp;
-	  }
-	  smp++;
-	}
-	down=smp;
-	if(down - up > top) { //To Be Tested
-	  //cout << "Start point " << up << " and " << down << endl;
-	  thetrig.up = up;
-	  thetrig.down = down;
-	  //Find the flat
-	  double newthresh = 0.75*max;
-	  short newup = maxloc;
-	  short newdown = maxloc;
-	  while(s_trap[newup]>=newthresh && newup > 0)
-	    newup--;
-	  while(s_trap[newdown]>=newthresh && newdown<wavelen-1)
-	    newdown++;
-	  thetrig.TrapT = (newup+newdown)/2.;
-	  thetrig.T = thetrig.TrapT;
-	  newup = thetrig.TrapT - 0.9*top/2.;
-	  newdown = thetrig.TrapT + 0.9*top/2.;
-	  double mean = 0;
-	  for (int i=newup;i<newdown;i++)
-	    mean += s_trap[i];
-	  mean = mean/(newdown - newup);
-	  thetrig.TrapE = max;
-	  thetrig.AveTrapE = mean;
-	  thetrig.MidTrapE = s_trap[(newup+newdown)/2];
-	  PlotTrap();
-	  if (f != 0) delete f;
-	  f = new TF1("f","pol1",newup,newdown);
-	  gTrap->Fit(f,"QN","",newup,newdown);
-	  thetrig.Flat0 = f->GetParameter(0);
-	  thetrig.Flat1 = f->GetParameter(1);
+	/*
+	short up, down;
+	for (int smp = 0; smp < wavelen; smp++) {
+		if(s_trap[smp]<=-1.*thresh && s_trap[smp-1]>-1.*thresh) {
+			down=smp;
+			minloc = down;
+			min = s_trap[smp];
+			smp++;
+			while(s_trap[smp]<=-1.*thresh && smp<wavelen) {
+				if (min > s_trap[smp]) {
+					min = s_trap[smp];
+					minloc = smp;
+				}
+			smp++;
+			}
+			up=smp;
+			if(up != 0) {
+				thetrig.up = up;
+				thetrig.down = down;
+				thetrig.E = min;
+				thetrig.AveTrapE = min;
+				thetrig.MidTrapE = min;
+				thetrig.TrapE = min;
+				thetrig.T = minloc;
+				thetrig.TrapT = minloc;
+				triglist.push_back(thetrig);
+			}
+		}
+		if(s_trap[smp]>=thresh && s_trap[smp-1]<thresh) {
+			up=smp;
+			maxloc = up;
+			max = s_trap[smp];
+			smp++;
+			while(s_trap[smp]>=thresh && smp<wavelen) {
+				if (max < s_trap[smp]) {
+					max = s_trap[smp];
+					maxloc = smp;
+				}
+				smp++;
+			}
+			down=smp;
+			if(down - up > top) { //To Be Tested
+				//cout << "Start point " << up << " and " << down << endl;
+				thetrig.up = up;
+				thetrig.down = down;
+				//Find the flat
+				double newthresh = 0.75*max;
+				short newup = maxloc;
+				short newdown = maxloc;
+				while(s_trap[newup]>=newthresh && newup > 0)
+					newup--;
+				while(s_trap[newdown]>=newthresh && newdown<wavelen-1)
+					newdown++;
+				thetrig.TrapT = (newup+newdown)/2.;
+				thetrig.T = thetrig.TrapT;
+				newup = thetrig.TrapT - 0.9*top/2.;
+				newdown = thetrig.TrapT + 0.9*top/2.;
+				double mean = 0;
+				for (int i=newup;i<newdown;i++)
+					mean += s_trap[i];
+				mean = mean/(newdown - newup);
+				thetrig.TrapE = max;
+				thetrig.AveTrapE = mean;
+				thetrig.MidTrapE = s_trap[(newup+newdown)/2];
+				PlotTrap();
+				if (f != 0) delete f;
+				f = new TF1("f","pol1",newup,newdown);
+				gTrap->Fit(f,"QN","",newup,newdown);
+				thetrig.Flat0 = f->GetParameter(0);
+				thetrig.Flat1 = f->GetParameter(1);
 #if defined (__CINT__)
-	  cout << "Found " << newup << ", " << newdown << endl;
-	  cout << "Ave: " << thetrig.AveTrapE << endl;
-	  cout << "Mid: " << thetrig.MidTrapE << endl;
-	  cout << "Max: " << thetrig.TrapE << endl;
+				cout << "Found " << newup << ", " << newdown << endl;
+				cout << "Ave: " << thetrig.AveTrapE << endl;
+				cout << "Mid: " << thetrig.MidTrapE << endl;
+				cout << "Max: " << thetrig.TrapE << endl;
 #endif
-	  triglist.push_back(thetrig);
+				triglist.push_back(thetrig);
+			}
+		}
 	}
-      }
-  }
+	*/
 }
 
 /*************************************************************************/

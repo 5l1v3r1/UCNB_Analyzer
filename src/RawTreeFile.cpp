@@ -8,6 +8,7 @@
 // 2015/5/11:  LJB  Read/write ROOT files with Tree of NI_event
 // 2015/7/16:  LJB  Specialized to June data format
 // 2015/11/20: LJB  Standardized all formats to June format
+// 2015/1/2:   LJB  Added event copy routine
  
 
 #ifndef RAW_TREE_FILE_CPP__
@@ -184,5 +185,17 @@ void RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBin
 	}
 }
 
+void RawTreeFile::FillRawEvent(RawEv_t& event){
+	NI_event.timestamp = event.timestamp;
+	NI_event.board = event.board;
+	NI_event.channel = event.channel;
+	NI_event.ch = event.ch;
+	NI_event.eventID = event.eventID;
+	NI_event.result = event.result;
+	NI_event.length = event.length;
+	for (int i=0;i<event.length;i++)
+		NI_event.wave[i] = event.wave[i];
+	FillTree();
+}
 #endif // RAW_TREE_FILE_CPP__
 

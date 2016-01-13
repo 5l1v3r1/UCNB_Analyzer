@@ -10,7 +10,7 @@ CPPFLAGS = -I inc/ -D_FILE_OFFSET_BITS=64
 LDFLAGS = -L/usr/local/lib -L/usr/include -L/root/lib
 
 MAIN = Analyzer
-SOURCES = TreeFile.cpp RawFileJune.cpp ROOTTreeFileJune.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp RawFileFeb.cpp ROOTTreeFileFeb.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp BinFile.cpp
+SOURCES = RawTreeFile.cpp TreeFile.cpp  TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp Sorter.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MAIN).o 
 INCLUDES = $(SOURCES:.cpp=.hh) LocalCFG.hh EvType.hh
 
@@ -20,7 +20,7 @@ REPLAYOBJ = $(REPLAYSRC:.cpp=.o) $(REPLAY).o
 REPLAYINC = $(REPLAYSRC:.cpp=.hh) LocalCFG.hh EvType.hh
 
 TRAP = DoTrapFilter
-TRAPSRC = TreeFile.cpp ROOTTreeFileJune.cpp TrapTreeFile.cpp TriggerList.cpp WaveformAnalyzer.cpp
+TRAPSRC = TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp TriggerList.cpp WaveformAnalyzer.cpp
 TRAPOBJ = $(TRAPSRC:.cpp=.o) $(TRAP).o
 TRAPINC = $(TRAPSRC:.cpp=.hh) LocalCFG.hh EvType.hh
 

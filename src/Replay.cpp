@@ -149,7 +149,7 @@ void DoRaw(int filenum) {
 		InputFile[rio]->SetPath(path);
 		InputFile[rio]->Open(filenum, rio);
 		if (!InputFile[rio]->IsOpen()) {
-			cout << "File Not Open!" << endl;
+			cout << "Input file not open!" << endl;
 			delete InputFile[rio];
 			delete InputEvent[rio];
 			return;

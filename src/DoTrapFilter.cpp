@@ -4,8 +4,9 @@
 // Purpose: Analyze data from NI DAQ
 //
 // Revision History:
-// 2015/5/6:  LJB  Created 
-// 2015/5/14: LJB  Applies trap trigger
+// 2015/5/6:   LJB  Created 
+// 2015/5/14:  LJB  Applies trap trigger
+// 2015/12/31: LJB  Fix file format versions
 
 #ifndef TRAP_FILTER_CPP__
 #define TRAP_FILTER_CPP__
@@ -17,8 +18,7 @@
 #include <cstring>
 //#include <string>
 
-//#include "ROOTTreeFileFeb.hh"
-#include "ROOTTreeFileJune.hh"
+#include "RawTreeFile.hh"
 #include "TrapTreeFile.hh"
 #include "TriggerList.hh"
 #include "WaveformAnalyzer.hh"
@@ -26,8 +26,6 @@
 void Usage(std::string program);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top, std::string path);
 
-int dataformat; // 0 = feb, 1 = june
-const int maxformat = 2; // only 2 formats so far
 
 
 /*************************************************************************/
@@ -46,7 +44,6 @@ int main (int argc, char *argv[]) {
   int decay1 = 250, decay2 = 250;
   int shaping1 = 250, shaping2 = 250;
   int top1 = 400, top2 = 400;
-  dataformat = 1;
   
   //Parse parameters
   while (i+1 <= argc) {
@@ -173,26 +170,6 @@ int main (int argc, char *argv[]) {
 	}
       }
     }
-    else if (strcmp(argv[i],"-format")==0) {
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -format" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      dataformat = atoi(argv[i]);
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -format" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(dataformat >= 0 && dataformat < maxformat)) {
-	cout << "Missing valid argument for -format" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      i++;
-    }
     else {
       cout << "Unrecognized parameter" << endl;
       Usage(argv[0]);
@@ -223,12 +200,11 @@ void Usage(std::string program) {
   cout << "-decay <decay time in smp> " << endl;
   cout << "-shaping <shaping time in smp> " << endl;
   cout << "-top <trap flat top length in smp> " << endl;
-  cout << "-format <format (0=feb,1=june)> to set data format (default 1)" << endl;
 }
 
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top, std::string path) {
   //-----Open input/output files
-  ROOTTreeFileJune RootFile;
+  RawTreeFile RootFile;
   if (path.compare("") != 0) { 
     RootFile.SetPath(path);
   }
@@ -247,7 +223,7 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top, std::strin
   cout << "Applying trap filter (decay/rise/top = " << decay <<"/" << shaping << "/" << top << ") to file " << filenum << endl;
   int nentries = RootFile.GetNumEvents();
   for (int ev=0;ev<nentries;ev++) {
-    printf("Working....%d/%d  (%d \%)\r",ev,nentries,100*ev/nentries);
+    printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
     RootFile.GetEvent(ev);
     WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
     vector<trigger_t> triglist; 
@@ -263,7 +239,7 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top, std::strin
       TrapFile.Trap_event.MaxE = maxtrig.TrapE;
       TrapFile.Trap_event.AveE = maxtrig.AveTrapE;
       TrapFile.Trap_event.MidE = maxtrig.MidTrapE;
-      TrapFile.Trap_event.t = maxtrig.TrapT;
+      TrapFile.Trap_event.t = maxtrig.TrapT + (double)RootFile.NI_event.timestamp;
       TrapFile.Trap_event.up = maxtrig.up;
       TrapFile.Trap_event.down = maxtrig.down;
       TrapFile.Trap_event.Flat0 = maxtrig.Flat0;

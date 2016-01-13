@@ -2,10 +2,10 @@
 #define LOCAL_CFG_HH__
 
 
-#define INPUT_PATH "Files/BiSource/"
-#define ROOT_PATH "Files/BiSource/"
-#define TRIG_PATH "Files/BiSource/"
-#define EVENT_PATH "Files/BiSource/"
+#define INPUT_PATH "Files/Dec15/Fixed"
+#define ROOT_PATH "Files/Dec15/Fixed"
+#define TRIG_PATH "Files/Dec15/Fixed"
+#define EVENT_PATH "Files/Dec15/Fixed"
 
 /*
 #define INPUT_PATH "/media/leah/UCNS2/UCNB/FebruaryData/raw"
