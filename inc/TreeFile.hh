@@ -20,7 +20,6 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "LocalCFG.hh"
 #include "BinFile.hh"
 
 using std::cout;
@@ -35,24 +34,30 @@ protected:
   bool createmode;
   std::string mypath;
   bool pathset;
+  char namestr[25];
 public:
   TreeFile();
   ~TreeFile();
   void Close();
   bool Open(std::string path, std::string name);
   bool Open(std::string filename);
-  virtual bool Open(int filenum) {};
+  bool Open(int filenum);
   bool IsOpen();
 #if !defined (__CINT__)
   bool Create(std::string path, std::string name);
   bool Create(std::string filename);
-  virtual bool Create(int filenum) {};
+  bool Create(int filenum);
 #endif // !defined (__CINT__)
   void FillTree();
   void Write();
   Int_t GetNumEvents(){return RootTree->GetEntries();};
   void GetEvent(Int_t ev);
   void SetPath(std::string newpath) {mypath = newpath; pathset = true;}
+protected:
+  virtual void SetNameStr() {};
+  virtual void SetBranches() {};
+  virtual void MakeBranches() {}; 
+  
 };
 
 #endif // TREE_FILE_JUNE_HH__

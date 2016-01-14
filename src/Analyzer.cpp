@@ -11,7 +11,8 @@
 // 2015/7/15:  LJB  Handle file format versions
 // 2015/11/21: LJB  Handle file versions with polymorphism, standardized
 //                  ROOT file format
-// 2015/1/2:   LJB  Added sort routine
+// 2016/1/2:   LJB  Added sort routine
+// 2016/1/3:   LJB  Reintegrate DoTrapFilter
 
 #ifndef ANALYZER_CPP__
 #define ANALYZER_CPP__
@@ -26,6 +27,7 @@
 #include "NIJune2015BinFile.hh"
 #include "RawTreeFile.hh"
 #include "TrigTreeFile.hh"
+#include "TrapTreeFile.hh"
 #include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
 #include "TriggerList.hh"
@@ -34,9 +36,10 @@
 void Usage(std::string program);
 void DoRaw(int filenum);
 void DoSort(int filenum);
-void DoAve(int filenum, int thresh);
-void DoTrap(int filenum, int thresh);
+void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
+void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
+void DoAve(int filenum, int thresh);
 
 std::string path;
 int dataformat; // 0 = feb, 1 = june
@@ -52,9 +55,9 @@ int main (int argc, char *argv[]) {
 
   cout << "Welcome to the NI DAQ Analyzer " << endl;
 
-  bool doraw = false, dotrap = false, docoll = false, doave = false, dosort = false;
+  bool doraw = false, dosort = false, dotrap = false, dofit = false, docoll = false, doave = false;
   bool fileok = false;
-  int i=1, filenum1, filenum2, avethresh, thresh, smpcoll;
+  int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1;
   dataformat = 1;
 
   //-----Parse parameters
@@ -105,58 +108,6 @@ int main (int argc, char *argv[]) {
       doraw = true;
       i++;
     }
-    else if (strcmp(argv[i],"-sort")==0) {
-		dosort = true;
-		i++;
-    }
-    else if (strcmp(argv[i],"-ave")==0) {
-      doave = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -ave" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -ave" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      avethresh = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-trap")==0) {
-      dotrap = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -trap" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -trap" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      thresh = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-coll")==0) {
-      docoll = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -coll" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -coll" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      smpcoll = atoi(argv[i]);
-      i++;      
-    }
     else if (strcmp(argv[i],"-format")==0) {
       i++;
       if (i+1 > argc) {
@@ -177,35 +128,154 @@ int main (int argc, char *argv[]) {
       }
       i++;
     }
+    else if (strcmp(argv[i],"-sort")==0) {
+		dosort = true;
+		i++;
+    }
+    else if (strcmp(argv[i],"-fit")==0) {
+      dofit = true;
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -fit" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -fit" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      fitthresh = atoi(argv[i]);
+      i++;
+    }
+    else if (strcmp(argv[i],"-trap")==0) {
+      dotrap = true;
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -trap" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -trap" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      trapthresh = atoi(argv[i]);
+      i++;
+    }
+    else if (strcmp(argv[i],"-decay")==0) {
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -decay" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -decay" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      decay = atoi(argv[i]);
+      i++;
+    }
+    else if (strcmp(argv[i],"-shaping")==0) {
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -shaping" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -shaping" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      shaping = atoi(argv[i]);
+      i++;
+    }
+    else if (strcmp(argv[i],"-top")==0) {
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -top" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -top" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      top = atoi(argv[i]);
+      i++;
+    }
+    else if (strcmp(argv[i],"-coll")==0) {
+      docoll = true;
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -coll" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -coll" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      smpcoll = atoi(argv[i]);
+      i++;      
+    }
+    else if (strcmp(argv[i],"-ave")==0) {
+      doave = true;
+      i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -ave" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -ave" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      avethresh = atoi(argv[i]);
+      i++;
+    }
     else {
       cout << "Unrecognized parameter" << endl;
       Usage(argv[0]);
       return 1;
     }
   }
-  if (!fileok || (!doraw && !dotrap && !docoll &&!doave && !dosort)) {
+  if (!fileok || (!doraw && !dosort && !dotrap && !dofit && !docoll &&!doave)) {
     if (!fileok)
       cout << "No file indicated" << endl;
-    if (!doraw && !dotrap && !docoll && !doave && !dosort)
+    if (!doraw && !dosort && !dotrap && !dofit && !docoll && !doave)
       cout << "What do you want to do? " << endl;
     Usage(argv[0]);
     return 1;
   }
-
+  if (dotrap && (decay == -1 || shaping == -1 || top == -1)) {
+	  cout << "Specify trap parameters decay/shaping/top" << endl;
+    Usage(argv[0]);
+    return 1;
+  }
+  
   //-----Process data
   for (int filenum = filenum1; filenum <= filenum2; filenum++) {
-	if (dosort)
-		DoSort(filenum);
     if (doraw)
 		DoRaw(filenum);
-    if (doave)
-		DoAve(filenum, avethresh);
-    if (dotrap)
-		DoTrap(filenum, thresh);
+	if (dosort)
+		DoSort(filenum);
+	if (dotrap)
+		DoTrap(filenum, trapthresh, decay, shaping, top);
+    if (dofit)
+		DoFit(filenum, fitthresh);
     if (docoll)
 		DoColl(filenum, smpcoll);
+    if (doave)
+		DoAve(filenum, avethresh);
   }
-
   cout << "Done." << endl;
   return 0; 
 
@@ -214,9 +284,14 @@ int main (int argc, char *argv[]) {
 void Usage(std::string program) {
   cout << "Usage: " << program  << " -f #1 [#2] -p path" << endl;
   cout << "-raw to convert .bin files to .root" << endl;
-  cout << "-trap <threshold> to filter waveforms" << endl;
+  cout << "      -format <format (0=feb,1=june)> to set data format (default 1)" << endl;
+  cout << "-sort to time-order .root file" << endl;
+  cout << "-trap <threshold> to filter waveforms for events using linear trapezoid" << endl;
+  cout << "      -decay <smp> to set linear trap decay constant" << endl;
+  cout << "      -shaping <smp> to set linear trap shaping time" << endl;
+  cout << "      -top <smp> to set linear trap flat top length" << endl;
+  cout << "-fit <threshold> to filter waveforms for events using pulse fitting" << endl;
   cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
-  cout << "-format <format (0=feb,1=june)> to set data format (default 1)" << endl;
 }
 
 void DoRaw(int filenum) {
@@ -276,7 +351,10 @@ void DoSort(int filenum) {
 	newpath.append("/Fixed/");
 	RawTreeFile NewFile;
 	NewFile.SetPath(newpath);
-	NewFile.Create(filenum);
+	if (!NewFile.Create(filenum)) {
+		cout << "Input file not open!" << endl;
+		return;
+	}
 	Sorter sortedlist;
 	sortedlist.Reset();
 	//-----Add to event_time-ordered list
@@ -301,46 +379,65 @@ void DoSort(int filenum) {
 	RootFile.Close();
 }
 
-void DoAve(int filenum, int thresh) {
+void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
   //-----Open input/output files
   RawTreeFile RootFile;
+  if (path.compare("") != 0) { 
+    RootFile.SetPath(path);
+  }
   if (!RootFile.Open(filenum)) {
-    cout << "Input file not open!" << endl;
+    cout << "File Not Open!" << endl;
     return;
   }
-  TrigTreeFile EvFile;
-  if (!EvFile.Open(filenum)) {
-    cout << "Event file Not Open!" << endl;
+  TrapTreeFile TrapFile;
+  if (path.compare("") != 0) { 
+    TrapFile.SetPath(path);
+  }
+  if (!TrapFile.Create(filenum,decay,shaping,top)) {
+    cout << "File Not Open!" << endl;
     return;
   }
-  int nentries = EvFile.GetNumEvents();
   WaveformAnalyzer WA;
-  //-----Build average waveform
+  WA.SetTrapPars(decay,shaping,top);
+  TriggerList TL;
+  cout << "Applying trap filter (decay/rise/top = " << decay <<"/" << shaping << "/" << top << ") to file " << filenum << endl;
+  int nentries = RootFile.GetNumEvents();
+  //-----Find triggers
   for (int ev=0;ev<nentries;ev++) {
     printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
-    EvFile.GetEvent(ev);
-    if (EvFile.Trig_event.E>thresh && EvFile.Trig_event.integ < 1.5) {
-      RootFile.GetEvent(EvFile.Trig_event.waveev);
-      WA.BuildAve(RootFile.NI_event.length, RootFile.NI_event.wave);
+    RootFile.GetEvent(ev);
+    WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
+    vector<trigger_t> triglist; 
+    WA.GetTriggers(thresh,triglist);
+    TL.Reset();
+    TL.AddTriggers(triglist);
+    trigger_t maxtrig;
+    maxtrig.TrapE = 0; maxtrig.AveTrapE = 0; maxtrig.MidTrapE = 0; 
+    maxtrig.TrapT = 0; 
+    maxtrig.up = 0; maxtrig.down = 0; maxtrig.ch = 0;
+    maxtrig.Flat0 = 0; maxtrig.Flat1 = 0; 
+    if (TL.GetMaxTrigger(maxtrig)) {
+      TrapFile.Trap_event.MaxE = maxtrig.TrapE;
+      TrapFile.Trap_event.AveE = maxtrig.AveTrapE;
+      TrapFile.Trap_event.MidE = maxtrig.MidTrapE;
+      TrapFile.Trap_event.t = maxtrig.TrapT + (double)RootFile.NI_event.timestamp;
+      TrapFile.Trap_event.up = maxtrig.up;
+      TrapFile.Trap_event.down = maxtrig.down;
+      TrapFile.Trap_event.Flat0 = maxtrig.Flat0;
+      TrapFile.Trap_event.Flat1 = maxtrig.Flat1;
     }
-  }
-  RootFile.Close();
-  vector<Double_t> average;
-  WA.ReturnAve(average);  
-  //-----Write to file
-  TFile* newfile = new TFile("Test.root","RECREATE");
-  TH1D* h = new TH1D("aveh","aveh",WA.BinAve.size(),0,WA.BinAve.size());
-  for (int i=0;i<average.size();i++)
-    h->Fill(i,average[i]);
-  TF1* f = new TF1("avef","pol1",0,WA.BinAve.size());
-  h->Fit(f,"QN","",0,50);
-  Int_t maxbin = h->GetMaximumBin();
-  cout << "Max value for run " << filenum << " is " << h->GetBinContent(maxbin) - f->Eval(maxbin) << endl;
-  newfile->Write();
-  newfile->Close();
+    TrapFile.Trap_event.ch = RootFile.NI_event.ch;
+    TrapFile.FillTree();
+  }//ev < NumEvents
+  TrapFile.Write();
+  cout << "Done" << endl;
+  TrapFile.Close();
+  RootFile.Close();	
 }
 
-void DoTrap(int filenum, int thresh) {
+
+
+void DoFit(int filenum, int thresh) {
 	//-----Open input/output files
 	RawTreeFile RootFile;
 	RootFile.SetPath(path);
@@ -349,7 +446,12 @@ void DoTrap(int filenum, int thresh) {
 		return;
 	}
 	TrigTreeFile TrigFile;
-	TrigFile.Create(filenum);
+	TrigFile.SetPath(path);
+	
+	if (!TrigFile.Create(filenum)) {
+		cout << "Output file not open!" << endl;
+		return;
+	}
 	WaveformAnalyzer WA;
 	cout << "IDing triggers in file " << filenum << endl;
 	//-----Find and order triggers
@@ -413,9 +515,10 @@ void DoColl(int filenum, int smp) {
     return;
   }
   EventTreeFile EventFile;
-  EventFile.Create(filenum);
-  int numch = MAXCH*NRIO;
-  EventFile.SetupTree(numch);
+  if (!EventFile.Create(filenum)) {
+		cout << "Output file not open!" << endl;
+		return;
+	}
   int nentries = TrigFile.GetNumEvents();
   int StartEv = 0;
   if (nentries == 0){
@@ -425,6 +528,7 @@ void DoColl(int filenum, int smp) {
     TrigFile.Close();
     return;
   }
+  int numch = MAXCH*MAXRIO;
   do {
     //-----Get start trigger of event
     printf("Working....%d/%d  (%d %%)\r",StartEv,nentries,100*StartEv/nentries);
@@ -448,6 +552,45 @@ void DoColl(int filenum, int smp) {
   cout << "Done" << endl;
   EventFile.Close();
   TrigFile.Close();
+}
+
+void DoAve(int filenum, int thresh) {
+  //-----Open input/output files
+  RawTreeFile RootFile;
+  if (!RootFile.Open(filenum)) {
+    cout << "Input file not open!" << endl;
+    return;
+  }
+  TrigTreeFile EvFile;
+  if (!EvFile.Open(filenum)) {
+    cout << "Event file Not Open!" << endl;
+    return;
+  }
+  int nentries = EvFile.GetNumEvents();
+  WaveformAnalyzer WA;
+  //-----Build average waveform
+  for (int ev=0;ev<nentries;ev++) {
+    printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
+    EvFile.GetEvent(ev);
+    if (EvFile.Trig_event.E>thresh && EvFile.Trig_event.integ < 1.5) {
+      RootFile.GetEvent(EvFile.Trig_event.waveev);
+      WA.BuildAve(RootFile.NI_event.length, RootFile.NI_event.wave);
+    }
+  }
+  RootFile.Close();
+  vector<Double_t> average;
+  WA.ReturnAve(average);  
+  //-----Write to file
+  TFile* newfile = new TFile("Test.root","RECREATE");
+  TH1D* h = new TH1D("aveh","aveh",WA.BinAve.size(),0,WA.BinAve.size());
+  for (int i=0;i<average.size();i++)
+    h->Fill(i,average[i]);
+  TF1* f = new TF1("avef","pol1",0,WA.BinAve.size());
+  h->Fit(f,"QN","",0,50);
+  Int_t maxbin = h->GetMaximumBin();
+  cout << "Max value for run " << filenum << " is " << h->GetBinContent(maxbin) - f->Eval(maxbin) << endl;
+  newfile->Write();
+  newfile->Close();
 }
 
 

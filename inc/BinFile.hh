@@ -16,10 +16,13 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include "LocalCFG.hh"
 
 using std::cout;
 using std::endl;
+
+#define MAXWAVE 6000
+#define MAXCH 8
+#define MAXRIO 16
 
 class BinFile
 {

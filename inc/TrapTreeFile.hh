@@ -5,6 +5,7 @@
 //
 // Revision History:
 // 2015/5/14:  LJB  Created
+// 2016/1/13:  LJB  Move base functions to TreeFile
  
 #ifndef TRAP_TREE_FILE_HH__
 #define TRAP_TREE_FILE_HH__
@@ -19,15 +20,13 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "LocalCFG.hh"
-#if !defined (__CINT__)
-#endif
+#include "TreeFile.hh"
 
 using std::cout;
 using std::endl;
 using std::vector;
 
-class TrapTreeFile
+class TrapTreeFile : public TreeFile
 {
 private:
   struct event_t{
@@ -41,11 +40,6 @@ private:
     Int_t down;
     Int_t ch;
   };
-  TFile* RootFile;
-  TTree* RootTree;
-  bool createmode;
-  std::string mypath;
-  bool pathset;
   Int_t decay;
   Int_t shaping;
   Int_t top;
@@ -54,21 +48,16 @@ public:
   event_t Trap_event;  //Do the thing!
   TrapTreeFile();
   ~TrapTreeFile();
-  void Close();
-  bool Open(std::string path, std::string name);
-  bool Open(std::string filename);
+  using TreeFile::Open;
   bool Open(int filenum, int decay, int shape, int top);
-  bool IsOpen();
 #if !defined (__CINT__)
-  bool Create(std::string path, std::string name);
-  bool Create(std::string filename);
+  using TreeFile::Create;
   bool Create(int filenum, int decay, int shape, int top);
 #endif // !defined (__CINT__)
-  void FillTree();
-  void Write();
-  Int_t GetNumEvents(){return RootTree->GetEntries();};
-  void GetEvent(Int_t ev);
-  void SetPath(std::string newpath) {mypath = newpath; pathset = true;}
+private:
+  void SetNameStr() {sprintf(namestr,"trap%%05d.root");};
+  void SetBranches();
+  void MakeBranches();
 };
 
 #endif // TRAP_TREE_FILE_HH__

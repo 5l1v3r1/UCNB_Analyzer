@@ -20,6 +20,7 @@
 //                            Constructor
 /*************************************************************************/
 RawTreeFile::RawTreeFile() {
+  SetNameStr();
 }
 
 /*************************************************************************/
@@ -44,33 +45,6 @@ void RawTreeFile::SetBranches() {
   RootTree->GetEntry(0);
 }
 
-/*************************************************************************/
-//                                Open   
-/*************************************************************************/
-bool RawTreeFile::Open(std::string path, std::string name){
-  if (!TreeFile::Open(path,name))
-    return false;
-  SetBranches(); // can parent function call child inherited version? LJB
-  return true;
-}
-
-bool RawTreeFile::Open(std::string filename){
-  if (!TreeFile::Open(filename))
-    return false;
-  SetBranches();
-  return true;
-}
-
-bool RawTreeFile::Open(int filenum){
-  char tempstr[255];
-  sprintf(tempstr,"run%05d.root",filenum);
-  std::string filename = tempstr;
-  if (pathset)
-    return Open(mypath,filename);
-  else
-    return Open(filename);
-}
-
 #if !defined (__CINT__)
 
 /*************************************************************************/
@@ -85,30 +59,6 @@ void RawTreeFile::MakeBranches() {
   RootTree->Branch("result",&NI_event.result,"result/I");
   RootTree->Branch("length",&NI_event.length,"length/I");
   RootTree->Branch("wave",&NI_event.wave[0],"wave[length]/S");
-}
-
-/*************************************************************************/
-//                               Create  
-/*************************************************************************/
-bool RawTreeFile::Create(std::string path, std::string name) {
-  if (!TreeFile::Create(path,name))
-    return false;
-  MakeBranches();
-  return true;
-}
-
-bool RawTreeFile::Create(std::string filename) {
-  if (!TreeFile::Create(filename))
-    return false;
-  MakeBranches();
-  return true;
-}
-
-bool RawTreeFile::Create(int filenum){
-  char tempstr[255];
-  sprintf(tempstr,"run%05d.root",filenum);
-  std::string filename = tempstr;
-  return Create(filename);
 }
 
 #endif // !defined (__CINT__)

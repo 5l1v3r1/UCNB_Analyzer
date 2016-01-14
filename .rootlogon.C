@@ -7,5 +7,5 @@
   gROOT->ProcessLine(".L src/TrapTreeFile.cpp");
   gROOT->ProcessLine(".L src/EventTreeFile.cpp");
   
-  gROOT->ProcessLine(".L src/Dec15.C");
+  gROOT->ProcessLine(".L scripts/Dec15.C");
 }

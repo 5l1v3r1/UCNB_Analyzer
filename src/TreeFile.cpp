@@ -66,7 +66,12 @@ bool TreeFile::Open(std::string path, std::string name){
   createmode = false;
 
   RootTree = (TTree*)RootFile->Get("t");
-
+  if (RootTree == 0) {
+	cout << "Bad TTree?" << endl;
+    Close();
+    return false;
+  }
+  SetBranches();
   return true;
 }
 
@@ -95,6 +100,16 @@ bool TreeFile::Open(std::string filename){
   }
 }
 
+bool TreeFile::Open(int filenum){
+  char tempstr[255];
+  sprintf(tempstr,namestr,filenum);
+  std::string filename = tempstr;
+  if (pathset)
+    return Open(mypath,filename);
+  else
+    return Open(filename);
+}
+
 
 /*************************************************************************/
 //                                IsOpen 
@@ -120,6 +135,7 @@ bool TreeFile::Create(std::string path, std::string name) {
 	Close();
 	std::string filename = path;
 	if (gSystem->AccessPathName(filename.c_str())) {
+		cout << "Path " << filename.c_str() << " not found" << endl;
 		return false;
 	}
 	filename.append("/");
@@ -130,10 +146,15 @@ bool TreeFile::Create(std::string path, std::string name) {
 		Close();
 		return false;
 	}
-	std::cout << "Writing " << filename << endl;
+	std::cout << "Writing to " << filename << endl;
 
 	RootTree = new TTree("t","t");
-
+	if (RootTree == 0) {
+		cout << "Failed to create TTree?" << endl;
+		Close();
+		return false;
+	}
+    MakeBranches();
 	createmode = true;
 	return true;
 }
@@ -161,6 +182,16 @@ bool TreeFile::Create(std::string filename) {
 		}while (++tp<ntrypath && !success);
 		return success;
 	}
+}
+
+bool TreeFile::Create(int filenum){
+  char tempstr[255];
+  sprintf(tempstr,namestr,filenum);
+  std::string filename = tempstr;
+  if (pathset)
+    return Create(mypath,filename);
+  else
+	return Create(filename);
 }
 
 #endif // !defined (__CINT__)
