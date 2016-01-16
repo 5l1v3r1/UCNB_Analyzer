@@ -9,6 +9,7 @@
 // 2015/7/16:  LJB  Specialized to June data format
 // 2015/11/20: LJB  Standardized all formats to June format
 // 2016/1/2:   LJB  Added event copy routine
+// 2016/1/16:  LJB  Added sort routine
  
 #ifndef RAW_TREE_FILE_HH__
 #define RAW_TREE_FILE_HH__
@@ -21,6 +22,7 @@
 #include "TSystem.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TMath.h"
 
 #include "NIJune2015BinFile.hh"
 #include "NIFeb2015BinFile.hh"
@@ -50,6 +52,8 @@ public:
   void FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv);
   void FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv);
   void FillRawEvent(RawEv_t& event);
+  void Sort();
+  void Sort(RawTreeFile& origfile);
 private:
   void SetNameStr() {sprintf(namestr,"run%%05d.root");};
   void SetBranches();

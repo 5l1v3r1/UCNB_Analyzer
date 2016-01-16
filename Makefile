@@ -10,9 +10,9 @@ CPPFLAGS = -I inc/ -D_FILE_OFFSET_BITS=64
 LDFLAGS = -L/usr/local/lib -L/usr/include -L/root/lib
 
 MAIN = Analyzer
-SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp Sorter.cpp
+SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MAIN).o 
-INCLUDES = $(SOURCES:.cpp=.hh) EvType.hh
+INCLUDES = $(SOURCES:.cpp=.hh)
 
 all: $(MAIN)
 
@@ -22,7 +22,7 @@ $(MAIN): $(OBJECTS)
 $(MAIN).o : $(MAIN).cpp $(INCLUDES)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) $(ROOTCFLAGS) -c $< -o $@ $(ROOTLIBS) $(ROOTGLIBS)
 
-%.o : %.cpp %.hh LocalCFG.hh #hack, need to fix dependencies
+%.o : %.cpp %.hh 
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) $(ROOTCFLAGS) -c $< -o $@ $(ROOTLIBS) $(ROOTGLIBS)
 
 clean :

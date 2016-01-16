@@ -9,6 +9,7 @@
 // 2015/7/16:  LJB  Specialized to June data format
 // 2015/11/20: LJB  Standardized all formats to June format
 // 2015/1/2:   LJB  Added event copy routine
+// 2015/1/16:   LJB  Added sort routine
  
 
 #ifndef RAW_TREE_FILE_CPP__
@@ -147,5 +148,29 @@ void RawTreeFile::FillRawEvent(RawEv_t& event){
 		NI_event.wave[i] = event.wave[i];
 	FillTree();
 }
+
+void RawTreeFile::Sort(){
+	Sort(*this);
+}
+
+void RawTreeFile::Sort(RawTreeFile& origfile){
+	TTree* orig = origfile.RootTree;
+	Int_t nentries = (Int_t)orig->GetEntries();
+	orig->Draw("timestamp","","goff");
+	Int_t *ix = new Int_t[nentries];
+	TMath::Sort(nentries,orig->GetV1(),&ix[0],false);
+	TTree *SortTree = (TTree*)orig->CloneTree(0);
+	
+	for (Int_t i=0;i<nentries;i++) {
+		printf("Writing....%d/%d  (%0.1lf %%)                       \r",i,nentries,100.*i/nentries);
+		orig->GetEntry(ix[i]);
+		SortTree->Fill();
+	}
+	delete [] ix;
+	delete RootTree;
+	RootTree = SortTree;
+}
+
+
 #endif // RAW_TREE_FILE_CPP__
 

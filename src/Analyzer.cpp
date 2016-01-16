@@ -13,6 +13,8 @@
 //                  ROOT file format
 // 2016/1/2:   LJB  Added sort routine
 // 2016/1/3:   LJB  Reintegrate DoTrapFilter
+// 2016/1/14:  LJB  Bug fix in DoSort GetNextEvent call
+// 2016/1/16:  LJB  Moved sort to RawTreeFile
 
 #ifndef ANALYZER_CPP__
 #define ANALYZER_CPP__
@@ -31,10 +33,9 @@
 #include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
 #include "TriggerList.hh"
-#include "Sorter.hh"
 
 void Usage(std::string program);
-void DoRaw(int filenum);
+void DoRaw(int filenum, bool sort);
 void DoSort(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
@@ -81,7 +82,7 @@ int main (int argc, char *argv[]) {
 			return 1;
 		}
 	}
-    if (strcmp(argv[i],"-f")==0) {
+    else if (strcmp(argv[i],"-f")==0) {
       i++;
       if (i+1 > argc) {
 	cout << "Missing argument for -f" << endl;
@@ -263,10 +264,15 @@ int main (int argc, char *argv[]) {
   
   //-----Process data
   for (int filenum = filenum1; filenum <= filenum2; filenum++) {
-    if (doraw)
-		DoRaw(filenum);
-	if (dosort)
-		DoSort(filenum);
+    if (doraw && dosort)
+		DoRaw(filenum, true);
+	else {
+		if (doraw) {
+			DoRaw(filenum, false);
+		}
+		if (dosort)
+			DoSort(filenum);
+	}
 	if (dotrap)
 		DoTrap(filenum, trapthresh, decay, shaping, top);
     if (dofit)
@@ -282,7 +288,7 @@ int main (int argc, char *argv[]) {
 }
 
 void Usage(std::string program) {
-  cout << "Usage: " << program  << " -f #1 [#2] -p path" << endl;
+  cout << "Usage:   " << program  << " -f #1 [#2] -p path" << endl;
   cout << "-raw to convert .bin files to .root" << endl;
   cout << "      -format <format (0=feb,1=june)> to set data format (default 1)" << endl;
   cout << "-sort to time-order .root file" << endl;
@@ -294,7 +300,7 @@ void Usage(std::string program) {
   cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
 }
 
-void DoRaw(int filenum) {
+void DoRaw(int filenum, bool sort) {
 	//-----Open input/output files
 	int nfiles = (dataformat == 0) ? NRIO : 1; // may need nfiles as parameter in future?
 	vector<BinFile*> InputFile(nfiles);
@@ -321,7 +327,10 @@ void DoRaw(int filenum) {
 	cout << "Processing raw file " << filenum << endl;
 	RawTreeFile RootFile;
 	RootFile.SetPath(path);
-	RootFile.Create(filenum);
+	if (!RootFile.Create(filenum)) {
+		cout << "Input file not open!" << endl;
+		return;
+	}
 	while (InputFile[0]->ReadNextEvent(*InputEvent[0])) {
 		float ev = InputFile[0]->GetPosition();
 		float nentries = InputFile[0]->GetLength();
@@ -330,6 +339,8 @@ void DoRaw(int filenum) {
 			InputFile[rio]->ReadNextEvent(*InputEvent[rio]);
 		RootFile.FillEvent(InputEvent);
 	}
+	if (sort)
+		RootFile.Sort();
 	RootFile.Write();
 	RootFile.Close();
 	for (int rio=0;rio<nfiles;rio++) {
@@ -338,6 +349,7 @@ void DoRaw(int filenum) {
 		delete InputEvent[rio];  
 	}
 }
+
 
 void DoSort(int filenum) {
 	//-----Open input/output files
@@ -355,25 +367,7 @@ void DoSort(int filenum) {
 		cout << "Input file not open!" << endl;
 		return;
 	}
-	Sorter sortedlist;
-	sortedlist.Reset();
-	//-----Add to event_time-ordered list
-	int nentries = RootFile.GetNumEvents();
-	for (int ev=0;ev<nentries;ev++) {
-		printf("Working....%d/%d  (%d %%)\r", ev,nentries, 100*ev/nentries);
-		RootFile.GetEvent(ev);
-		sortedlist.InsertEv(RootFile.NI_event.timestamp, ev);
-	}
-	//-----Write to tree
-	int ev = sortedlist.GetNextEvent(true);
-	int cnt = 0;
-	while (ev != -1) {
-		printf("Writing....%d/%d  (%d %%)\r", cnt,nentries, 100*ev/nentries);
-		RootFile.GetEvent(ev);
-		NewFile.FillRawEvent(RootFile.NI_event);
-		ev = sortedlist.GetNextEvent();
-		cnt++;
-	}
+	NewFile.Sort(RootFile);
 	NewFile.Write();
 	NewFile.Close();
 	RootFile.Close();
