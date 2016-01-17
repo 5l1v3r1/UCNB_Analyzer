@@ -1,3 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
+// Simple loading script for use in ROOT
+
 {
   gROOT->ProcessLine(".include inc/ "); 
   gROOT->ProcessLine(".L src/RawTreeFile.cpp");

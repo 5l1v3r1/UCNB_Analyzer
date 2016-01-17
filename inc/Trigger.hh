@@ -1,10 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: Trigger.hh
-// Name: Leah Broussard
-// Date: 2015/6/25
 // Purpose: Simple trigger object
-//
-// Revision History:
-// 2015/6/25:  LJB  Created
 
 #ifndef TRIGGER_HH__
 #define TRIGGER_HH__

@@ -1,16 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: NIFeb2015BinFile.hh
-// Name: Leah Broussard
-// Date: 2015/5/6
 // Purpose: Opens binary files in NI February 2015 format
-//
-// Revision History:
-// 2015/5/6:   LJB   Find and open file given run #
-// 2015/5/7:   LJB   Open multiple RIO files, requires consecutive RIO 
-//                   files starting with RIO0
-// 2015/5/11:  LJB   Reads events into a NI_event structure
-// 2015/7/15:  LJB   Specialized to February 2015 file format
-// 2015/7/16:  LJB   Split methods: single file classclass
-// 2015/11/21: LJB   Open(filenum)
  
 #ifndef NI_FEB15_BIN_FILE_HH__
 #define NI_FEB15_BIN_FILE_HH__
@@ -42,7 +35,6 @@ private:
   char date[100];
   char comment[500];
   bool readheader;
-  //FebBinEv_t NI_event;
 public:
 	NIFeb2015BinFile();
 	NIFeb2015BinFile(std::string path, std::string name);

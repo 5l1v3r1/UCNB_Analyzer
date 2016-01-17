@@ -1,12 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: WaveformAnalyzer.cpp
-// Name: Leah Broussard
-// Date: 2013/4/11
 // Purpose: Analyzes waveforms for energy and timing
-//
-// Revision History:
-// 2013/4/11: LJB  Adapt from Ne19 code
-// 2015/5/11: LJB  Adapt to NI format
-// 2015/1/2:  LJB  Cleaned up GetTriggers routine
 
 #ifndef WAVEFORM_ANALYZER_CPP__
 #define WAVEFORM_ANALYZER_CPP__

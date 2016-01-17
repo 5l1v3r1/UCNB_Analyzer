@@ -1,12 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: EventTreeFile.hh
-// Name: Leah Broussard
-// Date: 2015/6/29
 // Purpose: Handles ROOT TTree file with events E[numch], T
-//
-// Revision History:
-// 2015/6/29:  LJB  Created
-// 2015/7/8:   LJB  TTree fix: added SetupTree method
-// 2016/1/14:  LJB  Move base functions to TreeFile
  
 #ifndef EVENT_TREE_FILE_HH__
 #define EVENT_TREE_FILE_HH__
@@ -16,7 +13,6 @@
 #include <iostream>
 #include <string>
 
-//#include <TROOT.h>
 #include "TSystem.h"
 #include "TFile.h"
 #include "TTree.h"

@@ -1,11 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: TriggerList.hh
-// Name: Leah Broussard
-// Date: 2015/6/21
 // Purpose: Handles list of triggers in an event
-//
-// Revision History:
-// 2015/6/21:  LJB  Created
-// 2015/6/25:  LJB  Working OrderTriggerList routine
  
 #ifndef TRIGGERLIST_HH__
 #define TRIGGERLIST_HH__
@@ -15,7 +13,6 @@
 #include <iostream>
 #include <vector>
 
-//#include "TSystem.h"
 #include "Rtypes.h"
 #include "TMath.h"
 #include "Trigger.hh"

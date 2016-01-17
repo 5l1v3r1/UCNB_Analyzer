@@ -1,20 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: Analyzer.cpp
-// Name: Leah Broussard
-// Date: 2015/5/6
-// Purpose: Analyze data from NI DAQ
-//
-// Revision History:
-// 2015/5/6:   LJB  Created 
-// 2015/5/11:  LJB  Converts raw files into ROOT files
-// 2015/5/14:  LJB  Applies trap trigger
-// 2015/7/8:   LJB  Sorts charge-sharing coincidences into events
-// 2015/7/15:  LJB  Handle file format versions
-// 2015/11/21: LJB  Handle file versions with polymorphism, standardized
-//                  ROOT file format
-// 2016/1/2:   LJB  Added sort routine
-// 2016/1/3:   LJB  Reintegrate DoTrapFilter
-// 2016/1/14:  LJB  Bug fix in DoSort GetNextEvent call
-// 2016/1/16:  LJB  Moved sort to RawTreeFile
+// Purpose: Analyze data from NI DAQ for UCNB experiment
 
 #ifndef ANALYZER_CPP__
 #define ANALYZER_CPP__
@@ -500,7 +489,7 @@ void DoFit(int filenum, int thresh) {
 }
 
 void DoColl(int filenum, int smp) {
-  //Not yet working
+  //In development
   cout << "Collecting single-event coincidences in file " << filenum << endl;
   //-----Open input/output files
   TrigTreeFile TrigFile;

@@ -1,11 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: TrigTreeFile.hh
-// Name: Leah Broussard
-// Date: 2015/5/14
 // Purpose: Handles ROOT TTree file with E,t
-//
-// Revision History:
-// 2015/5/14:  LJB  Created
-// 2016/1/13:  LJB  Move base functions to TreeFile
  
 #ifndef TRIG_TREE_FILE_HH__
 #define TRIG_TREE_FILE_HH__

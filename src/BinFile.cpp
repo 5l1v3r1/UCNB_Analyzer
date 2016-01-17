@@ -1,11 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: BinFile.cpp
-// Name: Leah Broussard
-// Date: 2015/7/16
 // Purpose: Opens binary files
-//
-// Revision History:
-// 2015/7/16:  LJB  Created
-// 2015/11/21: LJB  SetPath and Open(filenum) methods
 
 #ifndef BIN_FILE_CPP__
 #define BIN_FILE_CPP__

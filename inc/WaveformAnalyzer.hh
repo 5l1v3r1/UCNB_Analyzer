@@ -1,11 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: WaveformAnalyzer.hh
-// Name: Leah Broussard
-// Date: 2013/4/11
 // Purpose: Analyzes waveforms for energy and timing
-//
-// Revision History:
-// 2013/4/11: LJB  Adapt from Ne19 code
-// 2015/5/11: LJB  Adapt to NI format
 
 #ifndef WAVEFORM_ANALYZER_HH__
 #define WAVEFORM_ANALYZER_HH__
@@ -16,7 +14,6 @@
 #include <string>
 #include <vector>
 
-//#include "ROOTTreeFile.hh"
 #include "EvType.hh"
 #include "TGraph.h"
 #include "Rtypes.h"
@@ -72,7 +69,6 @@ public:
   void GetTriggers(Long64_t thresh, vector<trigger_t> &triglist);
   void GetFitVals(Double_t &Amp, Double_t &Mean, Double_t &Tau, Double_t &Integration, Double_t &Chi2);
   void SetTrapPars(Int_t newdecaytime, Int_t newrisetime, Int_t newtop);
-  //Bool_t IsGoodWaveform();
 };
 
 #endif // WAVEFORM_ANALYZER_HH__

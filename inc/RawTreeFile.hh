@@ -1,15 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: RawTreeFile.hh
-// Name: Leah Broussard
-// Date: 2015/5/8
 // Purpose: Handles raw TTree file with waveforms
-//
-// Revision History:
-// 2015/5/8:   LJB  Create
-// 2015/5/11:  LJB  Read/write ROOT files with Tree of NI_event
-// 2015/7/16:  LJB  Specialized to June data format
-// 2015/11/20: LJB  Standardized all formats to June format
-// 2016/1/2:   LJB  Added event copy routine
-// 2016/1/16:  LJB  Added sort routine
  
 #ifndef RAW_TREE_FILE_HH__
 #define RAW_TREE_FILE_HH__

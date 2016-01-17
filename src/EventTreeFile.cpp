@@ -1,12 +1,9 @@
+// Copyright 2016.  Los Alamos National Security, LLC.
+// This file is part of UCNB_Analyzer.
+// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+
 // File: EventTreeFile.cpp
-// Name: Leah Broussard
-// Date: 2015/6/29
 // Purpose: Handles ROOT TTree file with events E[numch],t
-//
-// Revision History:
-// 2015/6/29:  LJB  Created
-// 2015/7/8:   LJB  TTree fix: added SetupTree method
-// 2016/1/13:  LJB  Move base functions to TreeFile
  
 
 #ifndef EVENT_TREE_FILE_CPP__
@@ -32,7 +29,6 @@ EventTreeFile::~EventTreeFile() {
 //                             SetBranches 
 /*************************************************************************/
 void EventTreeFile::SetBranches() {
-//  RootTree->SetBranchAddress("numch",&myEvent.numch);
   RootTree->SetBranchAddress("E",&myEvent.E[0]);
   RootTree->SetBranchAddress("t",&myEvent.t);
   RootTree->SetBranchAddress("waveev",&myEvent.waveev);
@@ -48,7 +44,6 @@ void EventTreeFile::MakeBranches() {
   TString Estr = "E[";
   Estr += MAXCH*MAXRIO;
   Estr += "]/D";
-//  RootTree->Branch("numch",&myEvent.numch,"numch/I");
   RootTree->Branch("E",&myEvent.E[0],Estr);
   RootTree->Branch("t",&myEvent.t,"t/D");
   RootTree->Branch("waveev",&myEvent.waveev,"waveev/I");
