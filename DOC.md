@@ -10,36 +10,22 @@ Main program
 
 The main program source code is in src/Analyzer.cpp.  The software is invoked by running the executable Analyzer and passing parameters by flags:
 
-* -f # [#]:  (required) File # or range of files # # to be processed
-* -format #: Numerical indicator of which binary format version in use (current = 1)
-* -p "":     Path "" to the files to be read/written
-* -raw:      Read (raw) events in binary files into TTree in a ROOT TFiles
-* -sort:     Sort events by time (necessary if boards aren't synchronized)
-* -fit #:    Fit waveforms to find real detector events above threshold #
-* -ave #:    Build an average pulse shape from processed events above threshold #
-* -coll #:   (In development) Collect detector events into coincidences within a window of # samples
+```
+-f # [#]:   (required) File # or range of files # # to be processed
+-p "":      Path "" to the files to be read/written
+-raw:       Read (raw) events in binary files into TTree in a ROOT TFiles
+-format #:  Numerical indicator of which binary format version in use (current = 1)
+-sort:      Sort events by time (necessary if boards aren't synchronized)
+-trap #:    Filter waveforms for events using linear trapezoid
+-decay #:   Set linear trap decay constant #
+-shaping #: Set linear trap shaping time #
+-top #:     Set linear trap flat top length #
+-fit #:     Fit waveforms to find real detector events above threshold #
+-coll #:    (In development) Collect detector events into coincidences within a window of # samples
+-ave #:      Build an average pulse shape from processed events above threshold #
+```
 
-The program DoTrapFilter (source code src/DoTrapFilter.cpp) uses a trapezoidal filter to find events, will eventually be moved to `$ ./Analyzer -trap`.
-
-### Typical use of software
-
-* Process raw binary file
-[BinFile] -> `$ ./Analyzer -raw` -> [RawTreeFile]
-
-* Correct time-ordering of events
-[RawTreeFile] -> `$ ./Analyzer -sort` -> [RawTreeFile]
-
-* Find triggers using fit to pulse shape
-[RawTreeFile] -> `$ ./Analyzer -fit` -> [TrigTreeFile]
-
-* Build average pulse shape
-[RawTreeFile, TrigTreeFile] -> `$ ./Analyzer -ave` -> [Ave.root]
-
-* Find triggers using trapezoidal filter algorithm
-[RawTreeFile] -> `$ ./DoTrapFilter` -> [TrapTreeFile]
-
-* Collect events into coincidences
-[TrigTreeFile] -> `$ ./Analyzer -coll` -> [EventTreeFile]
+See ExampleUsage.sh and scripts/Example.C
 
 ### Classes
 
@@ -74,10 +60,6 @@ Handles file with TTree of events found from trapezoidal filtering.
 ##### EventTreeFile
 
 Handles file with TTree of events from coincident channels.
-
-#### Sorter
-
-Holds a time-sorted linked list of RawTreeFile events.
 
 #### WaveformAnalyzer
 
