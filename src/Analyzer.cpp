@@ -43,7 +43,7 @@ int main (int argc, char *argv[]) {
   using std::cout;
   using std::endl;
 
-  cout << "Welcome to the NI DAQ Analyzer " << endl;
+  cout << "Welcome to UCNB_Analyzer 1.0.0" << endl;
 
   bool doraw = false, dosort = false, dotrap = false, dofit = false, docoll = false, doave = false;
   bool fileok = false;
@@ -291,7 +291,7 @@ void Usage(std::string program) {
 
 void DoRaw(int filenum, bool sort) {
 	//-----Open input/output files
-	int nfiles = (dataformat == 0) ? NRIO : 1; // may need nfiles as parameter in future?
+	int nfiles = (dataformat == 0) ? MAXRIO : 1; // may need nfiles as parameter in future?
 	vector<BinFile*> InputFile(nfiles);
 	vector<BinFile::BinEv_t*> InputEvent(nfiles);
 	for (int rio=0;rio<nfiles;rio++) { 

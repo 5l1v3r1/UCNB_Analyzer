@@ -14,13 +14,13 @@
 #include <string>
 #include <vector>
 
-#include "EvType.hh"
 #include "TGraph.h"
 #include "Rtypes.h"
 #include "TH1.h"
 #include "TF1.h"
 #include "TCanvas.h"
 #include "Trigger.hh"
+#include "RawTreeFile.hh"
 
 #define FITPOLY 5       //order+1 of fit polynomial
 
