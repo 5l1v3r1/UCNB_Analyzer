@@ -126,7 +126,8 @@ void RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBin
 			NI_event.wave[i] -= 16384;
 			}
 		}
-		FillTree();
+		if (NI_event.result == 1)
+			FillTree();
 	}
 }
 

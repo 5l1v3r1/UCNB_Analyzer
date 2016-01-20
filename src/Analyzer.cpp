@@ -470,8 +470,7 @@ void DoFit(int filenum, int thresh) {
 			TrigFile.Trig_event.rio_ch = RootFile.NI_event.channel;
 			TrigFile.Trig_event.chan = RootFile.NI_event.ch;
 			TrigFile.Trig_event.waveev = startev;
-			if (RootFile.NI_event.result == 1)
-				TrigFile.FillTree();
+			TrigFile.FillTree();
 		}
 	}//ev < NumEvents
 	TrigFile.Write();
