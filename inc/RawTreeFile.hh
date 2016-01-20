@@ -46,7 +46,6 @@ public:
   void FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv);
   void FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv);
   void FillRawEvent(RawEv_t& event);
-  void Sort();
   void Sort(RawTreeFile& origfile);
 private:
   void SetNameStr() {sprintf(namestr,"run%%05d.root");};

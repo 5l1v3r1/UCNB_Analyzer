@@ -24,7 +24,7 @@
 #include "TriggerList.hh"
 
 void Usage(std::string program);
-void DoRaw(int filenum, bool sort);
+void DoRaw(int filenum);
 void DoSort(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
@@ -253,15 +253,10 @@ int main (int argc, char *argv[]) {
   
   //-----Process data
   for (int filenum = filenum1; filenum <= filenum2; filenum++) {
-    if (doraw && dosort)
-		DoRaw(filenum, true);
-	else {
-		if (doraw) {
-			DoRaw(filenum, false);
-		}
-		if (dosort)
-			DoSort(filenum);
-	}
+    if (doraw)
+		DoRaw(filenum);
+	if (dosort)
+		DoSort(filenum);
 	if (dotrap)
 		DoTrap(filenum, trapthresh, decay, shaping, top);
     if (dofit)
@@ -289,7 +284,7 @@ void Usage(std::string program) {
   cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
 }
 
-void DoRaw(int filenum, bool sort) {
+void DoRaw(int filenum) {
 	//-----Open input/output files
 	int nfiles = (dataformat == 0) ? MAXRIO : 1; // may need nfiles as parameter in future?
 	vector<BinFile*> InputFile(nfiles);
@@ -328,8 +323,6 @@ void DoRaw(int filenum, bool sort) {
 			InputFile[rio]->ReadNextEvent(*InputEvent[rio]);
 		RootFile.FillEvent(InputEvent);
 	}
-	if (sort)
-		RootFile.Sort();
 	RootFile.Write();
 	RootFile.Close();
 	for (int rio=0;rio<nfiles;rio++) {
@@ -338,7 +331,6 @@ void DoRaw(int filenum, bool sort) {
 		delete InputEvent[rio];  
 	}
 }
-
 
 void DoSort(int filenum) {
 	//-----Open input/output files

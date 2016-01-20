@@ -143,10 +143,6 @@ void RawTreeFile::FillRawEvent(RawEv_t& event){
 	FillTree();
 }
 
-void RawTreeFile::Sort(){
-	Sort(*this);
-}
-
 void RawTreeFile::Sort(RawTreeFile& origfile){
 	TTree* orig = origfile.RootTree;
 	Int_t nentries = (Int_t)orig->GetEntries();
