@@ -22,6 +22,7 @@
 #include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
 #include "TriggerList.hh"
+#include "SiCalibrator.hh"
 
 void Usage(std::string program);
 void DoRaw(int filenum);
@@ -29,6 +30,7 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
 void DoAve(int filenum, int thresh);
+void DoCalib();
 
 std::string path;
 int dataformat; // 0 = feb, 1 = june
@@ -44,7 +46,7 @@ int main (int argc, char *argv[]) {
 
   cout << "Welcome to UCNB_Analyzer 1.0.0" << endl;
 
-  bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false;
+  bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false;
   bool fileok = false;
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1;
   dataformat = 1;
@@ -226,13 +228,18 @@ int main (int argc, char *argv[]) {
       avethresh = atoi(argv[i]);
       i++;
     }
+    else if (strcmp(argv[i],"-cal")==0) {
+      docal = true;
+      i++;
+    }
     else {
       cout << "Unrecognized parameter" << endl;
       Usage(argv[0]);
       return 1;
     }
   }
-  if (!fileok || (!doraw && !dotrap && !dofit && !docoll &&!doave)) {
+  
+  if (!docal && (!fileok || (!doraw && !dotrap && !dofit && !docoll &&!doave))) {
     if (!fileok)
       cout << "No file indicated" << endl;
     if (!doraw && !dotrap && !dofit && !docoll && !doave)
@@ -247,17 +254,22 @@ int main (int argc, char *argv[]) {
   }
   
   //-----Process data
-  for (int filenum = filenum1; filenum <= filenum2; filenum++) {
-    if (doraw)
-		DoRaw(filenum);
-	if (dotrap)
-		DoTrap(filenum, trapthresh, decay, shaping, top);
-    if (dofit)
-		DoFit(filenum, fitthresh);
-    if (docoll)
-		DoColl(filenum, smpcoll);
-    if (doave)
-		DoAve(filenum, avethresh);
+  if (fileok) {
+	for (int filenum = filenum1; filenum <= filenum2; filenum++) {
+		if (doraw)
+			DoRaw(filenum);
+		if (dotrap)
+			DoTrap(filenum, trapthresh, decay, shaping, top);
+		if (dofit)
+			DoFit(filenum, fitthresh);
+		if (docoll)
+			DoColl(filenum, smpcoll);
+		if (doave)
+			DoAve(filenum, avethresh);
+	}
+  }
+  if (docal) {
+	  DoCalib();
   }
   cout << "Done." << endl;
   return 0; 
@@ -564,5 +576,10 @@ void DoAve(int filenum, int thresh) {
   newfile->Close();
 }
 
+void DoCalib() {
+	SiCalibrator calib;
+	calib.DefineSources();
+	
+}
 
 #endif // __ANALYZER_CPP__

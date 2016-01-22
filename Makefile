@@ -14,7 +14,7 @@ CPPFLAGS = -I inc/ -D_FILE_OFFSET_BITS=64
 LDFLAGS = -L/usr/local/lib -L/usr/include -L/root/lib
 
 MAIN = Analyzer
-SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp
+SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp SiCalibrator.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MAIN).o 
 INCLUDES = $(SOURCES:.cpp=.hh)
 
