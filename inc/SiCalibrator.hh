@@ -16,9 +16,12 @@
 #include "TSystem.h"
 #include "TFile.h"
 #include "TH1D.h"
+#include "TH2D.h"
 #include "TF1.h"
+#include "TrapTreeFile.hh"
 
 #define MAXPIX 48
+#define MAXADCVAL 16000
 
 using std::cout;
 using std::endl;
@@ -27,6 +30,7 @@ using std::vector;
 class SiCalibrator
 {
 private:
+	vector<int> detector;
 	struct SourceLine_t {
 		double E;
 		double Edet; //after foil/deadlayer
@@ -39,26 +43,30 @@ private:
 		vector<SourceLine_t> xrays;
 	};
 	vector<CalibSource_t> sourcelist;
-	struct SourceData_t {
-		TH1D* hSource;
+	int maxtype;
+	struct ChData_t {
 		vector<TF1*> fits;
-	};
-	struct CalibData_t {
-		vector<SourceData_t> sourcedata;
 		TF1* fpol1;
 		TF1* fpol2;
 	};
-	vector<CalibData_t> ch;
+	struct CalibData_t {
+		TH2D* hSource;
+		vector<ChData_t> sourcedata;
+	};
+	vector<CalibData_t> CalData;
 	struct RunLog_t {
-		int type;
-		int run;
+		int filenum;
+		int type[2];
 	};
 	vector<RunLog_t> runlist;
 public:
 	SiCalibrator();
 	~SiCalibrator();
 	void DefineSources();
-	void DefineRunLog(vector<int> runlist, vector<int> typelist) {};
+	void DefineDetector(vector<int> newdetector) {detector.swap(newdetector);};
+	void DefineRunLog(vector<int> runlist, vector<int> type);
+	void DefineRunLog(vector<int> runlist, vector<int> type1, vector<int> type2);
+	void BuildHists(TrapTreeFile &trapf);
   
 };
 
