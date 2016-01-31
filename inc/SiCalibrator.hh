@@ -17,7 +17,11 @@
 #include "TFile.h"
 #include "TH1D.h"
 #include "TH2D.h"
+#include "TGraph.h"
 #include "TF1.h"
+#include "TSpectrum.h"
+#include "TPolyMarker.h"
+
 #include "TrapTreeFile.hh"
 
 #define MAXPIX 48
@@ -45,7 +49,9 @@ private:
 	vector<CalibSource_t> sourcelist;
 	int maxtype;
 	struct ChData_t {
-		vector<TF1*> fits;
+		//vector<TF1*> fits;
+		vector<double> points;
+		TH1D* hdata;
 		TF1* fpol1;
 		TF1* fpol2;
 	};
@@ -67,7 +73,9 @@ public:
 	void DefineRunLog(vector<int> runlist, vector<int> type);
 	void DefineRunLog(vector<int> runlist, vector<int> type1, vector<int> type2);
 	void BuildHists(TrapTreeFile &trapf);
-  
+	void FindPeaks();
+	void MatchPeaks();
 };
+
 
 #endif // SI_CALIBRATOR_HH__

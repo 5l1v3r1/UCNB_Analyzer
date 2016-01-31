@@ -616,6 +616,7 @@ void DoCalib() {
 	TrapTreeFile trapfile;
 	trapfile.SetPath("Files/Calibrations/");
 	calib.BuildHists(trapfile);
+	calib.FindPeaks();
 }
 
 #endif // __ANALYZER_CPP__
