@@ -86,6 +86,14 @@ bool TrapTreeFile::Create(int filenum, int decay, int shape, int top) {
 
 #endif // !defined (__CINT__)
 
+/*************************************************************************/
+//                                 Sort
+/*************************************************************************/
+
+void TrapTreeFile::Sort(TreeFile& origfile){
+	Sort(origfile,"t");
+}
+
 
 #endif // TRAP_TREE_FILE_CPP__
 

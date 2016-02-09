@@ -52,6 +52,8 @@ public:
   using TreeFile::Create;
   bool Create(int filenum, int decay, int shape, int top);
 #endif // !defined (__CINT__)
+  using TreeFile::Sort;
+  void Sort(TreeFile& origfile);
 private:
   void SetNameStr() {sprintf(namestr,"trap%%05d.root");};
   void SetBranches();

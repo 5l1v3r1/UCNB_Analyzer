@@ -62,8 +62,8 @@ void RawTreeFile::MakeBranches() {
 //                             FillEvent
 /*************************************************************************/
 
-void RawTreeFile::FillEvent(vector<BinFile::BinEv_t*> &BinEv) {
-	if (BinEv.size() == 0) return;
+bool RawTreeFile::FillEvent(vector<BinFile::BinEv_t*> &BinEv) {
+	if (BinEv.size() == 0) return false;
 	
 	vector<NIFeb2015BinFile::FebBinEv_t*> FebBinEv;
 	vector<NIJune2015BinFile::JuneBinEv_t*> JuneBinEv;
@@ -73,16 +73,17 @@ void RawTreeFile::FillEvent(vector<BinFile::BinEv_t*> &BinEv) {
 		JuneBinEv.push_back(dynamic_cast<NIJune2015BinFile::JuneBinEv_t*>(*iter));
 	}
 	if (FebBinEv[0]) {
-		FillFebEvent(FebBinEv);
+		return FillFebEvent(FebBinEv);
 	}
 	else if (JuneBinEv[0]) {
-		FillJuneEvent(JuneBinEv);		
+		return FillJuneEvent(JuneBinEv);		
 	}
-	else return;
+	else 
+		return false;
 }
 
   
-void RawTreeFile::FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv){
+bool RawTreeFile::FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv){
 	NI_event.eventID = 0;
 	NI_event.result = 0;
 	for (int rio=0;rio<FebBinEv.size();rio++) {
@@ -95,6 +96,7 @@ void RawTreeFile::FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv){
 			if (NI_event.length > MAXWAVE) {
 				NI_event.length = MAXWAVE;
 				cout << "Error, wavelength greater than defined MAXWAVE: " << FebBinEv[rio]->ch[NI_event.channel].wavelen << " > " << MAXWAVE << endl;
+				return false;
 			}
 			std::copy(FebBinEv[rio]->ch[ch].wave.begin(),FebBinEv[rio]->ch[ch].wave.begin()+NI_event.length,NI_event.wave);
 			for (int i=0;i<NI_event.length;i++) { //data fix
@@ -105,9 +107,10 @@ void RawTreeFile::FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv){
 		FillTree();
 		}
 	}
+	return true;
 }
 
-void RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv){
+bool RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv){
 	for (int rio=0;rio<JuneBinEv.size();rio++) {
 		NI_event.timestamp = JuneBinEv[rio]->timestamp;
 		NI_event.board = JuneBinEv[rio]->board;
@@ -119,6 +122,7 @@ void RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBin
 		if (NI_event.length > MAXWAVE) {
 			NI_event.length = MAXWAVE;
 			cout << "Error, wavelength greater than defined MAXWAVE: " << JuneBinEv[rio]->wave.size() << " > " << MAXWAVE << endl;
+			return false;
 		}
 		std::copy(JuneBinEv[rio]->wave.begin(),JuneBinEv[rio]->wave.begin()+NI_event.length,NI_event.wave);
 		for (int i=0;i<NI_event.length;i++) { //data fix
@@ -126,9 +130,13 @@ void RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBin
 			NI_event.wave[i] -= 16384;
 			}
 		}
-		if (NI_event.result == 1)
+		if (NI_event.result == 1 && NI_event.eventID == 0)
 			FillTree();
+		else {
+			cout << NI_event.result << ", " << NI_event.eventID << "              " << endl << endl;
+		}
 	}
+	return true;
 }
 
 void RawTreeFile::FillRawEvent(RawEv_t& event){
@@ -144,22 +152,12 @@ void RawTreeFile::FillRawEvent(RawEv_t& event){
 	FillTree();
 }
 
-void RawTreeFile::Sort(RawTreeFile& origfile){
-	TTree* orig = origfile.RootTree;
-	Int_t nentries = (Int_t)orig->GetEntries();
-	orig->Draw("timestamp","","goff");
-	Int_t *ix = new Int_t[nentries];
-	TMath::Sort(nentries,orig->GetV1(),&ix[0],false);
-	TTree *SortTree = (TTree*)orig->CloneTree(0);
-	
-	for (Int_t i=0;i<nentries;i++) {
-		printf("Writing....%d/%d  (%0.1lf %%)                       \r",i,nentries,100.*i/nentries);
-		orig->GetEntry(ix[i]);
-		SortTree->Fill();
-	}
-	delete [] ix;
-	delete RootTree;
-	RootTree = SortTree;
+/*************************************************************************/
+//                                 Sort
+/*************************************************************************/
+
+void RawTreeFile::Sort(TreeFile& origfile){
+	Sort(origfile,"timestamp");
 }
 
 

@@ -25,7 +25,6 @@
 
 void Usage(std::string program);
 void DoRaw(int filenum);
-void DoSort(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
@@ -45,7 +44,7 @@ int main (int argc, char *argv[]) {
 
   cout << "Welcome to UCNB_Analyzer 1.0.0" << endl;
 
-  bool doraw = false, dosort = false, dotrap = false, dofit = false, docoll = false, doave = false;
+  bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false;
   bool fileok = false;
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1;
   dataformat = 1;
@@ -117,10 +116,6 @@ int main (int argc, char *argv[]) {
 	return 1;
       }
       i++;
-    }
-    else if (strcmp(argv[i],"-sort")==0) {
-		dosort = true;
-		i++;
     }
     else if (strcmp(argv[i],"-fit")==0) {
       dofit = true;
@@ -237,10 +232,10 @@ int main (int argc, char *argv[]) {
       return 1;
     }
   }
-  if (!fileok || (!doraw && !dosort && !dotrap && !dofit && !docoll &&!doave)) {
+  if (!fileok || (!doraw && !dotrap && !dofit && !docoll &&!doave)) {
     if (!fileok)
       cout << "No file indicated" << endl;
-    if (!doraw && !dosort && !dotrap && !dofit && !docoll && !doave)
+    if (!doraw && !dotrap && !dofit && !docoll && !doave)
       cout << "What do you want to do? " << endl;
     Usage(argv[0]);
     return 1;
@@ -255,8 +250,6 @@ int main (int argc, char *argv[]) {
   for (int filenum = filenum1; filenum <= filenum2; filenum++) {
     if (doraw)
 		DoRaw(filenum);
-	if (dosort)
-		DoSort(filenum);
 	if (dotrap)
 		DoTrap(filenum, trapthresh, decay, shaping, top);
     if (dofit)
@@ -311,106 +304,110 @@ void DoRaw(int filenum) {
 	cout << "Processing raw file " << filenum << endl;
 	RawTreeFile RootFile;
 	RootFile.SetPath(path);
+	RootFile.SetTmp();
 	if (!RootFile.Create(filenum)) {
 		cout << "Input file not open!" << endl;
 		return;
 	}
-	while (InputFile[0]->ReadNextEvent(*InputEvent[0])) {
+	bool goodevent = true;
+	while (InputFile[0]->ReadNextEvent(*InputEvent[0]) && goodevent) {
 		float ev = InputFile[0]->GetPosition();
 		float nentries = InputFile[0]->GetLength();
 		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
 		for (int rio=1;rio<nfiles;rio++)
 			InputFile[rio]->ReadNextEvent(*InputEvent[rio]);
-		RootFile.FillEvent(InputEvent);
+		goodevent = RootFile.FillEvent(InputEvent);
 	}
-	RootFile.Write();
-	RootFile.Close();
 	for (int rio=0;rio<nfiles;rio++) {
 		InputFile[rio]->Close();  
 		delete InputFile[rio];
 		delete InputEvent[rio];  
 	}
-}
-
-void DoSort(int filenum) {
-	//-----Open input/output files
-	RawTreeFile RootFile;
-	RootFile.SetPath(path);
-	if (!RootFile.Open(filenum)) {
-		cout << "Input file not open!" << endl;
-		return;
-	}
-	std::string newpath = path;
-	newpath.append("/Fixed/");
+	//-----Sort by timestamp
 	RawTreeFile NewFile;
-	NewFile.SetPath(newpath);
+	NewFile.SetPath(path);
 	if (!NewFile.Create(filenum)) {
-		cout << "Input file not open!" << endl;
+		cout << "Output file not open!" << endl;
 		return;
 	}
 	NewFile.Sort(RootFile);
 	NewFile.Write();
 	NewFile.Close();
+	std::string tmpname = path;
+	tmpname.append("/");
+	tmpname.append(RootFile.GetName());
 	RootFile.Close();
+	remove(tmpname.c_str());
 }
 
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
-  //-----Open input/output files
-  RawTreeFile RootFile;
-  if (path.compare("") != 0) { 
-    RootFile.SetPath(path);
-  }
-  if (!RootFile.Open(filenum)) {
-    cout << "File Not Open!" << endl;
-    return;
-  }
-  TrapTreeFile TrapFile;
-  if (path.compare("") != 0) { 
-    TrapFile.SetPath(path);
-  }
-  if (!TrapFile.Create(filenum,decay,shaping,top)) {
-    cout << "File Not Open!" << endl;
-    return;
-  }
-  WaveformAnalyzer WA;
-  WA.SetTrapPars(decay,shaping,top);
-  TriggerList TL;
-  cout << "Applying trap filter (decay/rise/top = " << decay <<"/" << shaping << "/" << top << ") to file " << filenum << endl;
-  int nentries = RootFile.GetNumEvents();
-  //-----Find triggers
-  for (int ev=0;ev<nentries;ev++) {
-    printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
-    RootFile.GetEvent(ev);
-    WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
-    vector<trigger_t> triglist; 
-    WA.GetTriggers(thresh,triglist);
-    TL.Reset();
-    TL.AddTriggers(triglist);
-    trigger_t maxtrig;
-    maxtrig.TrapE = 0; maxtrig.AveTrapE = 0; maxtrig.MidTrapE = 0; 
-    maxtrig.TrapT = 0; 
-    maxtrig.up = 0; maxtrig.down = 0; maxtrig.ch = 0;
-    maxtrig.Flat0 = 0; maxtrig.Flat1 = 0; 
-    if (TL.GetMaxTrigger(maxtrig)) {
-      TrapFile.Trap_event.MaxE = maxtrig.TrapE;
-      TrapFile.Trap_event.AveE = maxtrig.AveTrapE;
-      TrapFile.Trap_event.MidE = maxtrig.MidTrapE;
-      TrapFile.Trap_event.t = maxtrig.TrapT + (double)RootFile.NI_event.timestamp;
-      TrapFile.Trap_event.up = maxtrig.up;
-      TrapFile.Trap_event.down = maxtrig.down;
-      TrapFile.Trap_event.Flat0 = maxtrig.Flat0;
-      TrapFile.Trap_event.Flat1 = maxtrig.Flat1;
-    }
-    TrapFile.Trap_event.ch = RootFile.NI_event.ch;
-    TrapFile.FillTree();
-  }//ev < NumEvents
-  TrapFile.Write();
-  cout << "Done" << endl;
-  TrapFile.Close();
-  RootFile.Close();	
+	//-----Open input/output files
+	RawTreeFile RootFile;
+	if (path.compare("") != 0) { 
+		RootFile.SetPath(path);
+	}
+	if (!RootFile.Open(filenum)) {
+		cout << "File Not Open!" << endl;
+		return;
+	}
+	TrapTreeFile TrapFile;
+	if (path.compare("") != 0) { 
+		TrapFile.SetPath(path);
+	}
+	TrapFile.SetTmp();
+	if (!TrapFile.Create(filenum,decay,shaping,top)) {
+		cout << "File Not Open!" << endl;
+		return;
+	}
+	WaveformAnalyzer WA;
+	WA.SetTrapPars(decay,shaping,top);
+	TriggerList TL;
+	cout << "Applying trap filter (decay/rise/top = " << decay <<"/" << shaping << "/" << top << ") to file " << filenum << endl;
+	int nentries = RootFile.GetNumEvents();
+	//-----Find triggers
+	for (int ev=0;ev<nentries;ev++) {
+		printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
+		RootFile.GetEvent(ev);
+		WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
+		vector<trigger_t> triglist; 
+		WA.GetTriggers(thresh,triglist);
+		TL.Reset();
+		TL.AddTriggers(triglist);
+		trigger_t maxtrig;
+		maxtrig.TrapE = 0; maxtrig.AveTrapE = 0; maxtrig.MidTrapE = 0; 
+		maxtrig.TrapT = 0; 
+		maxtrig.up = 0; maxtrig.down = 0; maxtrig.ch = 0;
+		maxtrig.Flat0 = 0; maxtrig.Flat1 = 0; 
+		if (TL.GetMaxTrigger(maxtrig)) {
+			TrapFile.Trap_event.MaxE = maxtrig.TrapE;
+			TrapFile.Trap_event.AveE = maxtrig.AveTrapE;
+			TrapFile.Trap_event.MidE = maxtrig.MidTrapE;
+			TrapFile.Trap_event.t = maxtrig.TrapT + (double)RootFile.NI_event.timestamp;
+			TrapFile.Trap_event.up = maxtrig.up;
+			TrapFile.Trap_event.down = maxtrig.down;
+			TrapFile.Trap_event.Flat0 = maxtrig.Flat0;
+			TrapFile.Trap_event.Flat1 = maxtrig.Flat1;
+		}
+		TrapFile.Trap_event.ch = RootFile.NI_event.ch;
+		TrapFile.FillTree();
+	}//ev < NumEvents
+	RootFile.Close();	
+	//-----Sort by timestamp
+	TrapTreeFile NewFile;
+	NewFile.SetPath(path);
+	if (!NewFile.Create(filenum,decay,shaping,top)) {
+		cout << "Output file not open!" << endl;
+		return;
+	}
+	NewFile.Sort(TrapFile);
+	NewFile.Write();
+	NewFile.Close();
+	std::string tmpname = path;
+	tmpname.append("/");
+	tmpname.append(TrapFile.GetName());
+	TrapFile.Close();
+	remove(tmpname.c_str());
 }
-
-
 
 void DoFit(int filenum, int thresh) {
 	//-----Open input/output files

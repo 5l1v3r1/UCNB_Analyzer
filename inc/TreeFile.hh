@@ -16,6 +16,7 @@
 #include "TSystem.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TMath.h"
 
 #include "BinFile.hh"
 
@@ -30,7 +31,9 @@ protected:
   TTree* RootTree;
   bool createmode;
   std::string mypath;
+  std::string myname;
   bool pathset;
+  bool tmp;
   char namestr[25];
 public:
   TreeFile();
@@ -49,11 +52,15 @@ public:
   void Write();
   Int_t GetNumEvents(){return RootTree->GetEntries();};
   void GetEvent(Int_t ev);
-  void SetPath(std::string newpath) {mypath = newpath; pathset = true;}
+  std::string GetName() {return myname;};
+  void SetPath(std::string newpath) {mypath = newpath; pathset = true;};
+  void SetTmp() {tmp = true;}
+  void UnsetTmp() {tmp = false;}
 protected:
   virtual void SetNameStr() {};
   virtual void SetBranches() {};
   virtual void MakeBranches() {}; 
+  void Sort(TreeFile& origfile, const char* sortstr);
   
 };
 

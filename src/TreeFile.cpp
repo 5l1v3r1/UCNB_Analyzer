@@ -19,7 +19,9 @@ TreeFile::TreeFile() {
   RootTree = 0;
   createmode = false;
   mypath = "";
+  myname = "";
   pathset = false;
+  tmp = false;
 }
 
 /*************************************************************************/
@@ -40,6 +42,7 @@ void TreeFile::Close() {
   }
   RootFile = 0;
   RootTree = 0;
+  myname = "";
   createmode = false;
 }
 
@@ -50,6 +53,11 @@ bool TreeFile::Open(std::string path, std::string name){
   Close();
   std::string filename = path;
   filename.append("/");
+  if (tmp) {
+	std::string temp = "tmp";
+	temp.append(name);
+	name = temp;
+  }
   filename.append(name);
   if (gSystem->AccessPathName(filename.c_str())) {
     //cout << filename << " not found " << endl;
@@ -68,6 +76,7 @@ bool TreeFile::Open(std::string path, std::string name){
     Close();
     return false;
   }
+  myname = name;
   SetBranches();
   return true;
 }
@@ -136,6 +145,11 @@ bool TreeFile::Create(std::string path, std::string name) {
 		return false;
 	}
 	filename.append("/");
+	if (tmp) {
+		std::string temp = "tmp";
+		temp.append(name);
+		name = temp;
+	}
 	filename.append(name);
 	RootFile = new TFile(filename.c_str(),"RECREATE");
 	if (!RootFile->IsOpen()) {
@@ -151,6 +165,7 @@ bool TreeFile::Create(std::string path, std::string name) {
 		Close();
 		return false;
 	}
+	myname = name;
     MakeBranches();
 	createmode = true;
 	return true;
@@ -184,6 +199,7 @@ bool TreeFile::Create(std::string filename) {
 bool TreeFile::Create(int filenum){
   char tempstr[255];
   sprintf(tempstr,namestr,filenum);
+  
   std::string filename = tempstr;
   if (pathset)
     return Create(mypath,filename);
@@ -240,7 +256,29 @@ void TreeFile::GetEvent(Int_t ev){
     return;
   }
   RootTree->GetEntry(ev);
+}  
+
+/*************************************************************************/
+//                                 Sort  
+/*************************************************************************/
+void TreeFile::Sort(TreeFile& origfile, const char* sortstr){
+	TTree* orig = origfile.RootTree;
+	Int_t nentries = (Int_t)orig->GetEntries();
+	orig->Draw(sortstr,"","goff");
+	Int_t *ix = new Int_t[nentries];
+	TMath::Sort(nentries,orig->GetV1(),&ix[0],false);
+	TTree *SortTree = (TTree*)orig->CloneTree(0);
+	
+	for (Int_t i=0;i<nentries;i++) {
+		printf("Writing....%d/%d  (%0.1lf %%)                       \r",i,nentries,100.*i/nentries);
+		orig->GetEntry(ix[i]);
+		SortTree->Fill();
+	}
+	delete [] ix;
+	delete RootTree;
+	RootTree = SortTree;
 }
+
 
 #endif // TREE_FILE_CPP__
 

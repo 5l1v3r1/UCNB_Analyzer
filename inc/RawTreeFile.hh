@@ -16,7 +16,6 @@
 #include "TSystem.h"
 #include "TFile.h"
 #include "TTree.h"
-#include "TMath.h"
 
 #include "NIJune2015BinFile.hh"
 #include "NIFeb2015BinFile.hh"
@@ -42,11 +41,12 @@ public:
   RawEv_t NI_event;
   RawTreeFile();
   ~RawTreeFile();
-  void FillEvent(vector<BinFile::BinEv_t*> &BinEv); 
-  void FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv);
-  void FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv);
+  bool FillEvent(vector<BinFile::BinEv_t*> &BinEv); 
+  bool FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv);
+  bool FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv);
   void FillRawEvent(RawEv_t& event);
-  void Sort(RawTreeFile& origfile);
+  using TreeFile::Sort;
+  void Sort(TreeFile& origfile);
 private:
   void SetNameStr() {sprintf(namestr,"run%%05d.root");};
   void SetBranches();
