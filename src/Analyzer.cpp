@@ -24,13 +24,16 @@
 #include "TriggerList.hh"
 #include "SiCalibrator.hh"
 
+#include "TApplication.h"
+#include "TRint.h"
+
 void Usage(std::string program);
 void DoRaw(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
 void DoAve(int filenum, int thresh);
-void DoCalib();
+void DoCalib(int thresh, int decay, int shaping, int top);
 
 std::string path;
 int dataformat; // 0 = feb, 1 = june
@@ -231,6 +234,18 @@ int main (int argc, char *argv[]) {
     else if (strcmp(argv[i],"-cal")==0) {
       docal = true;
       i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -cal" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -cal" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      trapthresh = atoi(argv[i]);
+      i++;
     }
     else {
       cout << "Unrecognized parameter" << endl;
@@ -247,12 +262,14 @@ int main (int argc, char *argv[]) {
     Usage(argv[0]);
     return 1;
   }
-  if (dotrap && (decay == -1 || shaping == -1 || top == -1)) {
+  if ((dotrap || docal) && (decay == -1 || shaping == -1 || top == -1)) {
 	  cout << "Specify trap parameters decay/shaping/top" << endl;
     Usage(argv[0]);
     return 1;
   }
   
+  
+	TApplication* myapp;
   //-----Process data
   if (fileok) {
 	for (int filenum = filenum1; filenum <= filenum2; filenum++) {
@@ -269,9 +286,11 @@ int main (int argc, char *argv[]) {
 	}
   }
   if (docal) {
-	  DoCalib();
+	  myapp = new TApplication("myapp",0,0);
+	  DoCalib(trapthresh, decay, shaping, top);
   }
   cout << "Done." << endl;
+  myapp->Run();
   return 0; 
 
 }
@@ -576,9 +595,8 @@ void DoAve(int filenum, int thresh) {
   newfile->Close();
 }
 
-void DoCalib() {
-	SiCalibrator calib;
-	calib.DefineSources();
+void DoCalib(int thresh, int decay, int shaping, int top) {
+	SiCalibrator calib(thresh, decay, shaping, top);
 	//-----To do: move detector channel mapping to new object
 	//east = 0, west = 1
 	int det[MAXPIX];
@@ -614,9 +632,11 @@ void DoCalib() {
 	calib.DefineRunLog(runlist,type1,type2);
 	//-----Build histograms
 	TrapTreeFile trapfile;
-	trapfile.SetPath("Files/Calibrations/");
+	trapfile.SetPath(path);
+	//-----To Do:  Check for exising files
 	calib.BuildHists(trapfile);
-	calib.FindPeaks();
+	//calib.FindPeaks();
+	calib.MatchPeaks();
 }
 
 #endif // __ANALYZER_CPP__

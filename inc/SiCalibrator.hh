@@ -22,6 +22,7 @@
 #include "TSpectrum.h"
 #include "TPolyMarker.h"
 
+#include "CalibSource.hh"
 #include "TrapTreeFile.hh"
 
 #define MAXPIX 48
@@ -34,23 +35,16 @@ using std::vector;
 class SiCalibrator
 {
 private:
+	int thresh;
+	int decay;
+	int shaping;
+	int top;
+	double avesigma;
 	vector<int> detector;
-	struct SourceLine_t {
-		double E;
-		double Edet; //after foil/deadlayer
-		double branch;
-	};
-	struct CalibSource_t {
-		std::string name;
-		int type;
-		vector<SourceLine_t> betas;
-		vector<SourceLine_t> xrays;
-	};
-	vector<CalibSource_t> sourcelist;
-	int maxtype;
 	struct ChData_t {
 		//vector<TF1*> fits;
-		vector<double> points;
+		vector<double> ADC;
+		vector<double> Amp;
 		TH1D* hdata;
 		TF1* fpol1;
 		TF1* fpol2;
@@ -67,8 +61,8 @@ private:
 	vector<RunLog_t> runlist;
 public:
 	SiCalibrator();
+	SiCalibrator(int thresh, int decay, int shaping, int top);
 	~SiCalibrator();
-	void DefineSources();
 	void DefineDetector(vector<int> newdetector) {detector.swap(newdetector);};
 	void DefineRunLog(vector<int> runlist, vector<int> type);
 	void DefineRunLog(vector<int> runlist, vector<int> type1, vector<int> type2);
