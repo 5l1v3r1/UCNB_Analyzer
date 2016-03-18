@@ -269,7 +269,7 @@ int main (int argc, char *argv[]) {
   }
   
   
-	TApplication* myapp;
+	TApplication* myapp = 0;
   //-----Process data
   if (fileok) {
 	for (int filenum = filenum1; filenum <= filenum2; filenum++) {
@@ -290,7 +290,8 @@ int main (int argc, char *argv[]) {
 	  DoCalib(trapthresh, decay, shaping, top);
   }
   cout << "Done." << endl;
-  myapp->Run();
+  if (myapp != 0)
+	myapp->Run();
   return 0; 
 
 }
