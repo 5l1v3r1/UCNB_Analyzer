@@ -12,8 +12,9 @@
 #include "SiCalibrator.hh"
 #include "TError.h"
 
-
 double fitf(double* x, double* par);
+double calcchisquare(TF1* f, TH1D* h, int lo, int hi);
+double minimize(TF1* f, TH1D* h, int par, double lo, double hi);
 
 /*************************************************************************/
 //                            Constructor
@@ -174,7 +175,7 @@ void SiCalibrator::FindPeaks() {
 //                             MatchPeaks
 /*************************************************************************/
 void SiCalibrator::MatchPeaks() {
-	int ch = 0; int src = 1;
+	int ch = 1; int src = 1;
 
 	char fname[255];
 	sprintf(fname,"SumCalData_th%dd%ds%dt%d",thresh,decay,shaping,top);
@@ -186,34 +187,54 @@ void SiCalibrator::MatchPeaks() {
 		CalData[src].sourcedata.resize(MAXPIX);
 	}
 	int nbins;
-//	for (int src=0; src < CalData.size(); src++) {
-//		if (CalData[src].hSource != 0) {
-//			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
+	for (int src=0; src < CalData.size(); src++) {
+		if (CalData[src].hSource != 0) {
+			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
 				TH1D* hbi = CalData[src].hSource->ProjectionY("hb",ch+1,ch+1);
 				nbins = hbi->GetNbinsX();
 				char name[255];
 				sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
 				CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
 				TH1D* hi = CalData[src].sourcedata[ch].hdata;
-	
-	
-	// Build fake spectrum fit function
-	TF1* f = new TF1("fitf",fitf,0,16000,4);
-	f->FixParameter(0,src);
-	f->FixParameter(1,0);
-	//f->SetParLimits(1,-30,30);
-	f->SetParameter(2,0.19);
-	f->SetParLimits(2,0.05,0.5);
-	f->SetParameter(3,1);
-//	cout << "max " << hbi->GetMaximum() << " / " << f->GetMaximum() << endl;
-	f->FixParameter(3,hbi->GetMaximum()/f->GetMaximum());
-
-	hbi->Draw();
-	hbi->Fit(f,"","",150,16000);
-	f->ReleaseParameter(3);
-	hbi->Fit(f,"","",150,16000);
-	//hbi->Fit(f,"","",150,16000);
-	f->Draw("same");
+				TF1* f = new TF1("fitf",fitf,0,16000,4);
+				CalData[src].sourcedata[ch].fpol1 = f;
+				// Build spectrum fit function
+				f->FixParameter(0,src);
+				f->FixParameter(1,0);
+				//f->SetParLimits(1,-30,30);
+				f->SetParameter(2,0.2);
+				f->SetParameter(3,1);
+				f->SetNpx(1000);
+				double scale = hbi->GetMaximum()/f->GetMaximum();
+				f->FixParameter(3,scale);
+				f->SetParameter(2,minimize(f,hbi,2,0.1,0.25));
+				f->ReleaseParameter(2);
+				f->ReleaseParameter(1);
+				//hbi->Draw();
+				//hbi->Fit(f,"LL","",thresh+50,16000);
+				//cout << f->GetChisquare()/f->GetNDF() << endl;
+				f->FixParameter(1,f->GetParameter(1));
+				f->FixParameter(2,f->GetParameter(2));
+				f->SetParameter(3,minimize(f,hbi,3,scale*0.1,scale*5));
+				f->ReleaseParameter(3);
+				f->SetParLimits(3,scale*0.1,scale*5);
+				//hbi->Fit(f,"LL","",thresh+50,16000);
+				//cout << f->GetChisquare()/f->GetNDF() << endl;
+				//hbi->Fit(f,"","",150,16000);
+				//f->Draw("same");
+			}
+		}
+	}
+	TH1D* hp1 = new TH1D("hp1","hp1",600,0,0.25);
+	for (int src=0; src < CalData.size(); src++) {
+		if (CalData[src].hSource != 0) {
+			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
+				TF1* f = CalData[src].sourcedata[ch].fpol1;
+				hp1->Fill(f->GetParameter(2));
+			}
+		}
+	}
+	hp1->Draw();
 }
 
 double fitf(double* x, double* par) {
@@ -223,16 +244,25 @@ double fitf(double* x, double* par) {
 	double calib1 = par[2];
 	double scale = par[3];
 	xval = xval*calib1 + calib0;
-	if (xval > 950) TF1::RejectPoint(); //account for ADC saturation
+	int lowE = 10;
+	if (src <= 1) lowE = 25;
+	if (xval < lowE) {TF1::RejectPoint();}  //don't overthink near threshold
+	if (xval > 900) TF1::RejectPoint(); //account for ADC saturation
 	double value = 0;
 	for (int i=0; i<CalibSource::sourcelist[src].betas.size(); i++) {
 		double amp = CalibSource::sourcelist[src].betas[i].branch;
 		double adc = CalibSource::sourcelist[src].betas[i].E;
 		double sigma = 2;
-		if (adc < 50) {
+		if (adc < 40) {
 			adc = 0.7*adc; //Grab real numbers from Penelope at some point
 			sigma = 4;
 		}
+		else if (adc < 60){
+			adc = 0.9*adc; //Grab real numbers from Penelope at some point
+			sigma = 4;
+		}
+		//else if (adc < 200)
+		//	adc = 0.9*adc;
 		value += amp*TMath::Exp(-1.*(xval-adc)*(xval-adc)/2./sigma/sigma);
 	}
 	double eff = 0.6; // Grab real efficiency from NIST at some point
@@ -240,9 +270,44 @@ double fitf(double* x, double* par) {
 		double amp = CalibSource::sourcelist[src].xrays[i].branch;
 		double adc = CalibSource::sourcelist[src].xrays[i].E;
 		double sigma = 2;
+		if (adc > 50)
+			eff = eff*0.2;
 		value += eff*amp*TMath::Exp(-1.*(xval-adc)*(xval-adc)/2./sigma/sigma);
 	}
+	if (src <= 1) //add a bkgd for 207Bi
+		value += 0.25*scale*TMath::Exp(-1.*xval/50);
 	return value*scale;
+}
+
+double calcchisquare(TF1* f, TH1D* h, int lo, int hi) {
+	double val = 0;
+	for (int i=lo;i<=hi;i++) {
+		double hc = h->GetBinContent(i);
+		double xc = h->GetXaxis()->GetBinCenter(i);
+		TF1::RejectPoint(kFALSE);
+		double fc = f->Eval(xc);
+		double ec = 1;
+		if (hc > 0)
+			ec = hc;
+		if (!TF1::RejectedPoint())
+			val += (hc - fc) * (hc - fc) / ec;
+	}
+	return val;
+}
+
+//ROOT won't minimize
+double minimize(TF1* f, TH1D* h, int par, double lo, double hi) {
+	double chimin = -1; 
+	double pmin;
+	for (double p=lo;p<hi;p=p+(hi-lo)/300) {
+		f->SetParameter(par,p);
+		double cs = calcchisquare(f,h,0,16000);
+		if (chimin == -1 || chimin > cs) {
+			chimin = cs;
+			pmin = p;
+		}
+	}
+	return pmin;
 }
 
 #endif // SI_CALIBRATOR_CPP__
