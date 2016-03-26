@@ -71,7 +71,7 @@ void SiCalibrator::DefineRunLog(vector<int> rlist, vector<int> tlist1, vector<in
 /*************************************************************************/
 void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 	char fname[255];
-	sprintf(fname,"SumCalData_th%dd%ds%dt%d",thresh,decay,shaping,top);
+	sprintf(fname,"SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
 	TFile* myfile = new TFile(fname,"RECREATE");
 	for (int run=0;run<runlist.size();run++) {
 		myfile->cd();
@@ -89,6 +89,7 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 		if (!trapf.Open(runlist[run].filenum,decay,shaping,top)) {
 			//-----To do: replay missing files
 			cout << "Error in runlist, no file " << runlist[run].filenum << endl;
+			delete myfile;
 			return;
 		}
 		for (int ev = 0; ev < trapf.GetNumEvents(); ev++ ) {
@@ -110,7 +111,7 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 			CalData[src].hSource->Write();
 		}
 	}
-	myfile->Close();
+	delete myfile;
 	return;
 }
 
@@ -119,14 +120,17 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 /*************************************************************************/
 void SiCalibrator::FindPeaks() {
 	char fname[255];
-	sprintf(fname,"SumCalData_th%dd%ds%dt%d",thresh,decay,shaping,top);
+	sprintf(fname,"SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
 	TFile* myfile = new TFile(fname);
-		for (int src=0; src < CalData.size(); src++) {
-			char name[255];
-			sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
-			CalData[src].hSource = (TH2D*)myfile->Get(name);
-			CalData[src].sourcedata.resize(MAXPIX);
-		}
+	for (int src=0; src < CalData.size(); src++) {
+		char name[255];
+		sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
+		CalData[src].hSource = (TH2D*)myfile->Get(name);
+		CalData[src].hSource->SetDirectory(gROOT);
+		CalData[src].sourcedata.resize(MAXPIX);
+	}
+	myfile->Close();
+	delete myfile;
 	int iterate = 25;
 	int nbins;
 	TSpectrum* spec = new TSpectrum(10);
@@ -137,11 +141,11 @@ void SiCalibrator::FindPeaks() {
 			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
 				TH1D* hbi = CalData[src].hSource->ProjectionY("hb",ch+1,ch+1);
 				nbins = hbi->GetNbinsX();
-				char name[255];
-				sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
-				CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
-				TH1D* hbk1 = CalData[src].sourcedata[ch].hdata;
-				hbk1 = (TH1D*) spec->Background(hbi,iterate);
+				//char name[255];
+				//sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
+				//CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
+				//TH1D* hbk1 = CalData[src].sourcedata[ch].hdata;
+				TH1D* hbk1 = (TH1D*) spec->Background(hbi,iterate);
 				hbi->Add(hbk1,-1);
 				//Estimate parameters
 				double lim = 5;
@@ -175,66 +179,104 @@ void SiCalibrator::FindPeaks() {
 //                             MatchPeaks
 /*************************************************************************/
 void SiCalibrator::MatchPeaks() {
-	int ch = 1; int src = 1;
-
 	char fname[255];
-	sprintf(fname,"SumCalData_th%dd%ds%dt%d",thresh,decay,shaping,top);
+	sprintf(fname,"SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
 	TFile* myfile = new TFile(fname);
 	for (int src=0; src < CalData.size(); src++) {
 		char name[255];
 		sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
 		CalData[src].hSource = (TH2D*)myfile->Get(name);
+		if (CalData[src].hSource != 0)
+			CalData[src].hSource->SetDirectory(gROOT);
 		CalData[src].sourcedata.resize(MAXPIX);
 	}
+	myfile->Close();
+	myfile->Open(fname,"RECREATE");
 	int nbins;
 	for (int src=0; src < CalData.size(); src++) {
 		if (CalData[src].hSource != 0) {
+			CalData[src].hSource->SetDirectory(myfile);
+			CalData[src].hSource->Write();
 			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
 				TH1D* hbi = CalData[src].hSource->ProjectionY("hb",ch+1,ch+1);
 				nbins = hbi->GetNbinsX();
-				char name[255];
-				sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
-				CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
-				TH1D* hi = CalData[src].sourcedata[ch].hdata;
-				TF1* f = new TF1("fitf",fitf,0,16000,4);
-				CalData[src].sourcedata[ch].fpol1 = f;
-				// Build spectrum fit function
-				f->FixParameter(0,src);
-				f->FixParameter(1,0);
-				//f->SetParLimits(1,-30,30);
-				f->SetParameter(2,0.2);
-				f->SetParameter(3,1);
-				f->SetNpx(1000);
-				double scale = hbi->GetMaximum()/f->GetMaximum();
-				f->FixParameter(3,scale);
-				f->SetParameter(2,minimize(f,hbi,2,0.1,0.25));
-				f->ReleaseParameter(2);
-				f->ReleaseParameter(1);
-				//hbi->Draw();
-				//hbi->Fit(f,"LL","",thresh+50,16000);
-				//cout << f->GetChisquare()/f->GetNDF() << endl;
-				f->FixParameter(1,f->GetParameter(1));
-				f->FixParameter(2,f->GetParameter(2));
-				f->SetParameter(3,minimize(f,hbi,3,scale*0.1,scale*5));
-				f->ReleaseParameter(3);
-				f->SetParLimits(3,scale*0.1,scale*5);
+				//char name[255];
+				//sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
+				//CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
+				//TH1D* hi = CalData[src].sourcedata[ch].hdata;
+				CalData[src].sourcedata[ch].fpol1 = 0;
+				if (hbi->Integral(1,nbins) > 0) {
+					TF1* f = new TF1("fitf",fitf,0,16000,4);
+					CalData[src].sourcedata[ch].fpol1 = f;
+					// Build spectrum fit function
+					f->FixParameter(0,src);
+					f->FixParameter(1,0);
+					//f->SetParLimits(1,-30,30);
+					f->SetParameter(2,0.2);
+					f->SetParameter(3,1);
+					f->SetNpx(1000);
+					double scale = hbi->GetMaximum()/f->GetMaximum();
+					f->FixParameter(3,scale);
+					f->SetParameter(2,minimize(f,hbi,2,0.1,0.3));
+					//f->ReleaseParameter(2);
+					//f->ReleaseParameter(1);
+					//hbi->Draw();
+					//hbi->Fit(f,"LL","",thresh+50,16000);
+					//cout << f->GetChisquare()/f->GetNDF() << endl;
+					//f->FixParameter(1,f->GetParameter(1));
+					//f->FixParameter(2,f->GetParameter(2));
+					//f->SetParameter(3,minimize(f,hbi,3,scale*0.1,scale*5));
+					//f->ReleaseParameter(3);
+					//f->SetParLimits(3,scale*0.1,scale*5);
+					/*
+					double slope = f->GetParameter(2);
+					if (slope < 0.2 || slope > 0.25) {
+						cout << "src " << src;
+						cout << " ch " << ch;
+						cout << " cnts " << hbi->Integral(1,nbins);
+						cout << " pol1" << slope << endl;
+						//hbi->Draw();
+						//return;
+					}
+					*/
 				//hbi->Fit(f,"LL","",thresh+50,16000);
 				//cout << f->GetChisquare()/f->GetNDF() << endl;
 				//hbi->Fit(f,"","",150,16000);
 				//f->Draw("same");
+				/*
+					if (src == 1 && ch==13) {
+						hbi->Draw();
+						f->Draw("same");
+						return;
+					}
+				*/
+				}
 			}
 		}
 	}
-	TH1D* hp1 = new TH1D("hp1","hp1",600,0,0.25);
 	for (int src=0; src < CalData.size(); src++) {
 		if (CalData[src].hSource != 0) {
+			TString name = "hp1_";
+			name += src;
+			TH1D* hp1 = new TH1D(name,name,CalData[src].sourcedata.size(),0,CalData[src].sourcedata.size());
 			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
-				TF1* f = CalData[src].sourcedata[ch].fpol1;
-				hp1->Fill(f->GetParameter(2));
+				if (CalData[src].sourcedata[ch].fpol1 != 0) {
+					TF1* f = CalData[src].sourcedata[ch].fpol1;
+					hp1->SetBinContent(ch+1,f->GetParameter(2));
+				}
 			}
+			hp1->Write();
+	/*		TCanvas* c = new TCanvas();
+			c->Divide(1,2);
+			c->cd(1);
+			CalData[src].hSource->Draw("COLZ");
+			c->cd(2);
+			hp1->Draw();
+	*/
 		}
 	}
-	hp1->Draw();
+	myfile->Close();
+	delete myfile;
 }
 
 double fitf(double* x, double* par) {
@@ -245,7 +287,7 @@ double fitf(double* x, double* par) {
 	double scale = par[3];
 	xval = xval*calib1 + calib0;
 	int lowE = 10;
-	if (src <= 1) lowE = 25;
+	if (src <= 1) lowE = 50;
 	if (xval < lowE) {TF1::RejectPoint();}  //don't overthink near threshold
 	if (xval > 900) TF1::RejectPoint(); //account for ADC saturation
 	double value = 0;

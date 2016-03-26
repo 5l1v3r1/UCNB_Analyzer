@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 
+#include "TROOT.h"
 #include "TSystem.h"
 #include "TFile.h"
 #include "TH1D.h"
@@ -21,6 +22,7 @@
 #include "TF1.h"
 #include "TSpectrum.h"
 #include "TPolyMarker.h"
+#include "TCanvas.h"
 
 #include "CalibSource.hh"
 #include "TrapTreeFile.hh"
@@ -45,7 +47,7 @@ private:
 		//vector<TF1*> fits;
 		vector<double> ADC;
 		vector<double> Amp;
-		TH1D* hdata;
+		//TH1D* hdata;
 		TF1* fpol1;
 		TF1* fpol2;
 	};
