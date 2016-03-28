@@ -20,17 +20,18 @@ double minimize(TF1* f, TH1D* h, int par, double lo, double hi);
 //                            Constructor
 /*************************************************************************/
 SiCalibrator::SiCalibrator() {
+	mypath = "";
+	pathset = false;
 	detector.resize(MAXPIX);
 	CalData.resize(CalibSource::CalibSource::sourcelist.size());
 }
 
 SiCalibrator::SiCalibrator(int th, int d, int s, int t) {
+	mypath = "";
+	pathset = false;
 	detector.resize(MAXPIX);
 	CalData.resize(CalibSource::CalibSource::sourcelist.size());
-	thresh = th;
-	decay = d;
-	shaping = s;
-	top = t;
+	SetPars(th,d,s,t);
 }
 
 
@@ -41,6 +42,75 @@ SiCalibrator::~SiCalibrator() {
 }
 
 
+/*************************************************************************/
+//                               SetPars
+/*************************************************************************/
+void SiCalibrator::SetPars(int th, int d, int s, int t) {
+	thresh = th;
+	decay = d;
+	shaping = s;
+	top = t;
+}
+
+/*************************************************************************/
+//                                 Load
+/*************************************************************************/
+void SiCalibrator::Load() {
+	//need to delete previous memory
+	char tmpname[255];
+	sprintf(tmpname,"/SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
+	std::string fname = tmpname;
+	std::string filename = mypath;
+	filename.append(fname);
+	TFile* myfile = new TFile(filename.c_str());
+	for (int src=0; src < CalData.size(); src++) {
+		char name[255];
+		sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
+		CalData[src].hSource = (TH2D*)myfile->Get(name);
+		if (CalData[src].hSource != 0)
+			CalData[src].hSource->SetDirectory(gROOT);
+		CalData[src].sourcedata.resize(MAXPIX);
+		/*
+		for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
+			sprintf(tmpname,"fs%dch%d",src,ch);
+			CalData[src].sourcedata[ch].fpol1 = (TF1*)myfile->Get(name);
+			if (CalData[src].sourcedata[ch].fpol1 != 0)
+				CalData[src].sourcedata[ch].fpol1->SetDirectory(gROOT);
+			
+			
+		}
+		*/
+		sprintf(name,"hp1_%d",src);
+		CalData[src].hp1 = (TH1D*)myfile->Get(name);
+		if (CalData[src].hp1 != 0) {
+			CalData[src].hp1->SetDirectory(gROOT);
+			/*
+			if (src == 5) {
+				TCanvas* c = new TCanvas();
+				c->Divide(1,2);
+				c->cd(1);
+				CalData[src].hSource->Draw("COLZ");
+				c->cd(2);
+				CalData[src].hp1->Draw();
+			}
+			*/
+		}
+	}
+	myfile->Close();
+}
+
+/*************************************************************************/
+//                               GetHist
+/*************************************************************************/
+TH1D* SiCalibrator::GetHist(int src, int ch) {
+	TH1D* h = 0;
+	TString name = "hproj"; name += src; name += "_"; name += ch;
+	if (CalData[src].hSource != 0) {
+		h = CalData[src].hSource->ProjectionY(name,ch+1,ch+1);
+	}
+	return h;
+}
+	
 /*************************************************************************/
 //                             DefineRunLog
 /*************************************************************************/
@@ -70,9 +140,12 @@ void SiCalibrator::DefineRunLog(vector<int> rlist, vector<int> tlist1, vector<in
 //                             BuildHists
 /*************************************************************************/
 void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
-	char fname[255];
-	sprintf(fname,"SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
-	TFile* myfile = new TFile(fname,"RECREATE");
+	char tmpname[255];
+	sprintf(tmpname,"/SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
+	std::string fname = tmpname;
+	std::string filename = mypath;
+	filename.append(fname);
+	TFile* myfile = new TFile(filename.c_str(),"RECREATE");
 	for (int run=0;run<runlist.size();run++) {
 		myfile->cd();
 		for (int det=0;det<2;det++) {
@@ -99,6 +172,7 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 				int src = runlist[run].type[detector[ch]];
 				if (src < CalData.size()) {
 					myfile->cd();
+					//Improve by implementing a data quality filter
 					CalData[src].hSource->Fill(ch,trapf.Trap_event.AveE);
 				}
 			}
@@ -118,19 +192,9 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 /*************************************************************************/
 //                              FindPeaks
 /*************************************************************************/
+////    This version needs thought
 void SiCalibrator::FindPeaks() {
-	char fname[255];
-	sprintf(fname,"SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
-	TFile* myfile = new TFile(fname);
-	for (int src=0; src < CalData.size(); src++) {
-		char name[255];
-		sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
-		CalData[src].hSource = (TH2D*)myfile->Get(name);
-		CalData[src].hSource->SetDirectory(gROOT);
-		CalData[src].sourcedata.resize(MAXPIX);
-	}
-	myfile->Close();
-	delete myfile;
+	Load();
 	int iterate = 25;
 	int nbins;
 	TSpectrum* spec = new TSpectrum(10);
@@ -141,10 +205,6 @@ void SiCalibrator::FindPeaks() {
 			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
 				TH1D* hbi = CalData[src].hSource->ProjectionY("hb",ch+1,ch+1);
 				nbins = hbi->GetNbinsX();
-				//char name[255];
-				//sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
-				//CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
-				//TH1D* hbk1 = CalData[src].sourcedata[ch].hdata;
 				TH1D* hbk1 = (TH1D*) spec->Background(hbi,iterate);
 				hbi->Add(hbk1,-1);
 				//Estimate parameters
@@ -179,19 +239,13 @@ void SiCalibrator::FindPeaks() {
 //                             MatchPeaks
 /*************************************************************************/
 void SiCalibrator::MatchPeaks() {
-	char fname[255];
-	sprintf(fname,"SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
-	TFile* myfile = new TFile(fname);
-	for (int src=0; src < CalData.size(); src++) {
-		char name[255];
-		sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
-		CalData[src].hSource = (TH2D*)myfile->Get(name);
-		if (CalData[src].hSource != 0)
-			CalData[src].hSource->SetDirectory(gROOT);
-		CalData[src].sourcedata.resize(MAXPIX);
-	}
-	myfile->Close();
-	myfile->Open(fname,"RECREATE");
+	Load();
+	char tmpname[255];
+	sprintf(tmpname,"/SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
+	std::string fname = tmpname;
+	std::string filename = mypath;
+	filename.append(fname);
+	TFile *myfile = new TFile(filename.c_str(),"RECREATE");
 	int nbins;
 	for (int src=0; src < CalData.size(); src++) {
 		if (CalData[src].hSource != 0) {
@@ -200,13 +254,10 @@ void SiCalibrator::MatchPeaks() {
 			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
 				TH1D* hbi = CalData[src].hSource->ProjectionY("hb",ch+1,ch+1);
 				nbins = hbi->GetNbinsX();
-				//char name[255];
-				//sprintf(name,"h%sCh%d",CalibSource::sourcelist[src].name.c_str(),ch);
-				//CalData[src].sourcedata[ch].hdata = new TH1D(name,name,nbins,0,nbins);
-				//TH1D* hi = CalData[src].sourcedata[ch].hdata;
 				CalData[src].sourcedata[ch].fpol1 = 0;
 				if (hbi->Integral(1,nbins) > 0) {
-					TF1* f = new TF1("fitf",fitf,0,16000,4);
+					sprintf(tmpname,"fs%dch%d",src,ch);
+					TF1* f = new TF1(tmpname,fitf,0,16000,4);
 					CalData[src].sourcedata[ch].fpol1 = f;
 					// Build spectrum fit function
 					f->FixParameter(0,src);
@@ -250,29 +301,30 @@ void SiCalibrator::MatchPeaks() {
 						return;
 					}
 				*/
+					f->Write();
 				}
 			}
 		}
 	}
 	for (int src=0; src < CalData.size(); src++) {
 		if (CalData[src].hSource != 0) {
-			TString name = "hp1_";
-			name += src;
-			TH1D* hp1 = new TH1D(name,name,CalData[src].sourcedata.size(),0,CalData[src].sourcedata.size());
+			sprintf(tmpname,"hp1_%d",src);
+			CalData[src].hp1 = new TH1D(tmpname,tmpname,CalData[src].sourcedata.size(),0,CalData[src].sourcedata.size());
 			for (int ch=0; ch<CalData[src].sourcedata.size(); ch++) {
 				if (CalData[src].sourcedata[ch].fpol1 != 0) {
 					TF1* f = CalData[src].sourcedata[ch].fpol1;
-					hp1->SetBinContent(ch+1,f->GetParameter(2));
+					CalData[src].hp1->SetBinContent(ch+1,f->GetParameter(2));
 				}
 			}
-			hp1->Write();
-	/*		TCanvas* c = new TCanvas();
+			CalData[src].hp1->Write();
+			/*
+			TCanvas* c = new TCanvas();
 			c->Divide(1,2);
 			c->cd(1);
 			CalData[src].hSource->Draw("COLZ");
 			c->cd(2);
-			hp1->Draw();
-	*/
+			CalData[src].hp1->Draw();
+			*/
 		}
 	}
 	myfile->Close();

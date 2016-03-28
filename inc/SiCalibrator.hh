@@ -37,6 +37,8 @@ using std::vector;
 class SiCalibrator
 {
 private:
+	std::string mypath;
+	bool pathset;
 	int thresh;
 	int decay;
 	int shaping;
@@ -49,10 +51,11 @@ private:
 		vector<double> Amp;
 		//TH1D* hdata;
 		TF1* fpol1;
-		TF1* fpol2;
+		//TF1* fpol2;
 	};
 	struct CalibData_t {
 		TH2D* hSource;
+		TH1D* hp1;
 		vector<ChData_t> sourcedata;
 	};
 	vector<CalibData_t> CalData;
@@ -65,6 +68,10 @@ public:
 	SiCalibrator();
 	SiCalibrator(int thresh, int decay, int shaping, int top);
 	~SiCalibrator();
+	void SetPath(std::string newpath) {mypath = newpath; pathset = true;};
+	void SetPars(int thresh, int decay, int shaping, int top);
+	void Load();
+	TH1D* GetHist(int src, int ch);
 	void DefineDetector(vector<int> newdetector) {detector.swap(newdetector);};
 	void DefineRunLog(vector<int> runlist, vector<int> type);
 	void DefineRunLog(vector<int> runlist, vector<int> type1, vector<int> type2);

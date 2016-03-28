@@ -286,12 +286,12 @@ int main (int argc, char *argv[]) {
 	}
   }
   if (docal) {
-	  myapp = new TApplication("myapp",0,0);
+	  //myapp = new TApplication("myapp",0,0);
 	  DoCalib(trapthresh, decay, shaping, top);
   }
   cout << "Done." << endl;
-  if (myapp != 0)
-	myapp->Run();
+  //if (myapp != 0)
+	//myapp->Run();
   return 0; 
 
 }
@@ -598,6 +598,7 @@ void DoAve(int filenum, int thresh) {
 
 void DoCalib(int thresh, int decay, int shaping, int top) {
 	SiCalibrator calib(thresh, decay, shaping, top);
+	calib.SetPath(path);
 	//-----To do: move detector channel mapping to new object
 	//east = 0, west = 1
 	int det[MAXPIX];
@@ -638,6 +639,8 @@ void DoCalib(int thresh, int decay, int shaping, int top) {
 	calib.BuildHists(trapfile);
 	//calib.FindPeaks();
 	calib.MatchPeaks();
+	calib.Load();  //test that it worked
+	//cout << "Hit Ctrl+C to stop viewing plot and quit program." << endl;
 }
 
 #endif // __ANALYZER_CPP__
