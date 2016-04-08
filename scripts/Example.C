@@ -9,13 +9,13 @@ TrapTreeFile trapf;
 WaveformAnalyzer wf;
 RawTreeFile rtf;
 
-int shaping = 300, top = 300, decay = 200
+int shaping = 300, top = 300, decay = 200;
 double tsmp = 4.e-9;
 int abslo = 350; int abshi = 6000;
 
 //Plot a waveform and pulse fit function
 void PlotWave(int ev, int run) {
-	rtf.SetPath("Files/Dec15/Fixed");
+	rtf.SetPath("Files/Sources");
 	rtf.Open(run); 
 	rtf.GetEvent(ev);
 	wf.MakeTrap(rtf.NI_event.length,rtf.NI_event.wave);

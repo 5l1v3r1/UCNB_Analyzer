@@ -34,6 +34,10 @@ void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
 void DoAve(int filenum, int thresh);
 void DoCalib(int thresh, int decay, int shaping, int top);
+void DoShapeScan();
+double cex(double*x, double* par);
+double invx(double* x, double* par);
+double enc2(double* x, double* par);
 
 std::string path;
 int dataformat; // 0 = feb, 1 = june
@@ -49,10 +53,12 @@ int main (int argc, char *argv[]) {
 
   cout << "Welcome to UCNB_Analyzer 1.0.0" << endl;
 
-  bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false;
+  bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false, 
+	docal = false, doshapescan = false;
   bool fileok = false;
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1;
   dataformat = 1;
+  path = "./";
 
   //-----Parse parameters
   while (i+1 <= argc) {
@@ -247,14 +253,18 @@ int main (int argc, char *argv[]) {
       trapthresh = atoi(argv[i]);
       i++;
     }
+    else if (strcmp(argv[i],"-shapescan")==0) {
+      doshapescan = true;
+      i++;
+    }
     else {
-      cout << "Unrecognized parameter" << endl;
+      cout << "Unrecognized parameter " << argv[i] << endl;
       Usage(argv[0]);
       return 1;
     }
   }
   
-  if (!docal && (!fileok || (!doraw && !dotrap && !dofit && !docoll &&!doave))) {
+  if (!docal && !doshapescan && (!fileok || (!doraw && !dotrap && !dofit && !docoll &&!doave))) {
     if (!fileok)
       cout << "No file indicated" << endl;
     if (!doraw && !dotrap && !dofit && !docoll && !doave)
@@ -286,8 +296,11 @@ int main (int argc, char *argv[]) {
 	}
   }
   if (docal) {
-	  //myapp = new TApplication("myapp",0,0);
 	  DoCalib(trapthresh, decay, shaping, top);
+  }
+  if (doshapescan) {
+	  //myapp = new TApplication("myapp",0,0);
+	  DoShapeScan();
   }
   cout << "Done." << endl;
   //if (myapp != 0)
@@ -307,6 +320,8 @@ void Usage(std::string program) {
   cout << "      -top <smp> to set linear trap flat top length" << endl;
   cout << "-fit <threshold> to filter waveforms for events using pulse fitting" << endl;
   cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
+  cout << "-cal <threshold> to perform calibration" << endl;
+  cout << "-shapescan to perform shaping scan on 139Ce x-rays" << endl;
 }
 
 void DoRaw(int filenum) {
@@ -633,14 +648,131 @@ void DoCalib(int thresh, int decay, int shaping, int top) {
 	type2.assign(&typ2[0],&typ2[0]+38);
 	calib.DefineRunLog(runlist,type1,type2);
 	//-----Build histograms
+	cout << "Building histograms.." << endl;
 	TrapTreeFile trapfile;
 	trapfile.SetPath(path);
 	//-----To Do:  Check for exising files
 	calib.BuildHists(trapfile);
 	//calib.FindPeaks();
+	cout << "Fitting spectra.."<< endl;
 	calib.MatchPeaks();
-	calib.Load();  //test that it worked
 	//cout << "Hit Ctrl+C to stop viewing plot and quit program." << endl;
 }
 
+void DoShapeScan() {
+	//Hard-coded parameters, maybe use config file eventually
+	int thresh = 35; int decay = 200;
+	const int num = 14;
+	int sscan[] = {35,50,60,70,100,150,200,250,300,350,400,450,500,600};
+	//double sscan[] = {35,50,60,70,100,150,200,250,300,350,400,450,500,600};
+	double Elo = 100, Ehi = 300;
+	//3.62 at 300K, 3.72 at 80K
+	double eVtoENC = 3.7;
+	//-----Create output file
+	std::string filename = path;
+	filename.append("ShapingScan.root");
+	TFile* myfile = new TFile(filename.c_str(),"RECREATE");
+	SiCalibrator calib;
+	calib.SetPath(path);
+	TF1* fenc = new TF1("fenc",enc2,10,1000,3);
+	//-----Shaping scans
+	double sigma[num];
+	double ENC2[num];
+	double scan[num];
+	double fwhm[num];
+	TH1D* hh1 = new TH1D("h1","h1",48,0,48);
+	TH1D* hh2 = new TH1D("h2","h2",48,0,48);
+	TH1D* hh3 = new TH1D("h3","h3",48,0,48);
+	TH1D* hminsig = new TH1D("hminsig","hminsig",48,0,48);
+	int cnt;
+	for (int ch=0; ch< 48; ch++) {
+		cnt = 0;
+		printf("Channel %d/%d\r",ch,48);fflush(stdout); 
+		for (int i=0;i<num;i++) {
+			int shape = sscan[i]; int top = shape;
+			calib.SetPars(thresh, decay, shape, top);
+			calib.Load();
+			TH1D* hp = calib.GetHist(5,ch);
+			if (hp!= 0) {
+				hp->GetXaxis()->SetRangeUser(Elo,Ehi);
+				if (hp->Integral(Elo,Ehi) > 0) {
+					int maxbin = hp->GetMaximumBin();
+					double calib = 33.5/(double)maxbin;
+					TF1* fitf = new TF1("fitf",cex,Elo,Ehi,5);
+					fitf->SetParameters(calib,1,3,25,20);
+					double scale = hp->GetBinContent(maxbin)/fitf->Eval(maxbin);
+					fitf->SetParameters(calib,scale,3,25,20);
+					hp->Fit(fitf,"QN","",Elo,Ehi);
+					sigma[cnt] = fitf->GetParameter(2);
+					fwhm[cnt] = sigma[cnt]*2.35;
+					ENC2[cnt] = sigma[cnt]*sigma[cnt]*1.e3*1.e3/eVtoENC/eVtoENC;
+					scan[cnt] = sscan[i]*4.e-3; //us
+					delete fitf;
+					cnt++;
+				}
+				delete hp;
+			}
+		}
+		if (cnt > 0) {
+			myfile->cd();
+			TGraph* g = new TGraph(cnt,scan,ENC2); //fwhm);
+			g->SetMarkerStyle(20);
+			char gname[25];
+			sprintf(gname,"g%d",ch);
+			g->SetName(gname);
+			g->Fit(fenc,"QN","",10*4.e-3,1000*4.e-3);
+			g->Write();
+			hh1->SetBinContent(ch+1,fenc->GetParameter(0));
+			hh2->SetBinContent(ch+1,fenc->GetParameter(1));
+			hh3->SetBinContent(ch+1,fenc->GetParameter(2));
+			double msig = TMath::Sqrt(fenc->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
+			if (!TMath::IsNaN(msig))
+				hminsig->SetBinContent(ch+1,msig);
+		}
+	}
+	hh1->Write();
+	hh2->Write();
+	hh3->Write();
+	hminsig->Write();
+	cout << endl;
+	myfile->Close();
+}
+
+//fit function for 139Ce x-rays
+double cex(double*x, double* par) {
+	double xval = *x;
+	double calib = par[0];
+	double scale = par[1];
+	double sigma = par[2];
+	double exptail = par[3];
+	double expamp = par[4];
+	xval = xval*calib;
+	double loE = 22.5;
+	double hiE = 50;
+	double value = 0;
+	if (xval < loE || xval > hiE) {
+		TF1::RejectPoint();
+		return value;
+	}
+	int src = 5; //139Ce
+	for (int i=0; i<CalibSource::sourcelist[src].xrays.size(); i++) {
+		double amp = CalibSource::sourcelist[src].xrays[i].branch;
+		double adc = CalibSource::sourcelist[src].xrays[i].E;
+		value += amp*TMath::Exp(-1.*(xval-adc)*(xval-adc)/2./sigma/sigma);
+	}
+	//to do: include 27 keV beta instead of approximating as exponential background?
+	value += expamp*scale*TMath::Exp(-1.*xval/exptail);
+	return value*scale;
+}
+
+//fit function 
+double invx(double* x, double* par) {
+	double xval = *x;
+	return par[0]/xval + par[1];
+}
+
+double enc2(double* x, double* par) {
+	double xval = *x;
+	return par[0]/xval + par[1] + par[2]*xval;
+}
 #endif // __ANALYZER_CPP__

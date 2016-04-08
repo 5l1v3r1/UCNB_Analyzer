@@ -24,6 +24,8 @@ SiCalibrator::SiCalibrator() {
 	pathset = false;
 	detector.resize(MAXPIX);
 	CalData.resize(CalibSource::CalibSource::sourcelist.size());
+	for (int src=0; src < CalData.size(); src++)
+		CalData[src].hSource = 0;
 }
 
 SiCalibrator::SiCalibrator(int th, int d, int s, int t) {
@@ -31,9 +33,10 @@ SiCalibrator::SiCalibrator(int th, int d, int s, int t) {
 	pathset = false;
 	detector.resize(MAXPIX);
 	CalData.resize(CalibSource::CalibSource::sourcelist.size());
+	for (int src=0; src < CalData.size(); src++)
+		CalData[src].hSource = 0;
 	SetPars(th,d,s,t);
 }
-
 
 /*************************************************************************/
 //                              Destructor
@@ -56,7 +59,6 @@ void SiCalibrator::SetPars(int th, int d, int s, int t) {
 //                                 Load
 /*************************************************************************/
 void SiCalibrator::Load() {
-	//need to delete previous memory
 	char tmpname[255];
 	sprintf(tmpname,"/SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
 	std::string fname = tmpname;
@@ -64,6 +66,7 @@ void SiCalibrator::Load() {
 	filename.append(fname);
 	TFile* myfile = new TFile(filename.c_str());
 	for (int src=0; src < CalData.size(); src++) {
+		if (CalData[src].hSource != 0) delete CalData[src].hSource;
 		char name[255];
 		sprintf(name,"h%s",CalibSource::sourcelist[src].name.c_str());
 		CalData[src].hSource = (TH2D*)myfile->Get(name);
