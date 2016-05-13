@@ -1,7 +1,7 @@
 # Copyright 2016.  Los Alamos National Security, LLC.
 # Copyright 2016.  UT-Battelle, LLC.
 # This file is part of UCNB_Analyzer.
-# This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+# See LICENSE.md included in top directory of this distribution.
 
 vpath %.cpp src/
 vpath %.hh inc/
@@ -15,7 +15,7 @@ CPPFLAGS = -I inc/ -D_FILE_OFFSET_BITS=64
 LDFLAGS = -L/usr/local/lib -L/usr/include -L/root/lib
 
 MAIN = Analyzer
-SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp TrigTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp CalibSource.cpp SiCalibrator.cpp
+SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp NITrigBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrigTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp TriggerList.cpp EventTreeFile.cpp CalibSource.cpp SiCalibrator.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MAIN).o 
 INCLUDES = $(SOURCES:.cpp=.hh)
 

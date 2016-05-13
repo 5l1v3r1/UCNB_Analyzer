@@ -48,6 +48,7 @@ public:
 	void Close();
 	inline bool IsOpen(){return fFileStream.is_open();}
 	bool CheckLength();
+	void Reset() {if (IsOpen()) {fFileStream.seekg(0,fFileStream.beg);}}
 	std::streampos GetPosition();
 	std::streampos GetLength() {return fFileLength;}
 	virtual bool ReadNextEvent(BinEv_t& NI_event) {}

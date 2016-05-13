@@ -4,7 +4,7 @@
 
 // Example script for use in ROOT with typical analysis routines that haven't made their way into the main program. Warning: may contain lazy and inefficient programming; viewer discretion is advised.
 
-TrigTreeFile ttf;
+FitTreeFile ttf;
 TrapTreeFile trapf;
 WaveformAnalyzer wf;
 RawTreeFile rtf;
@@ -39,8 +39,8 @@ void PlotWave(int ev, int run) {
 void PlotEventWave(int ev, int run) {
 	ttf.Open(run);
 	ttf.GetEvent(ev);
-	cout << "E,T = " << ttf.Trig_event.trapE << ", " << ttf.Trig_event.trapT << endl;
-	PlotWave(ttf.Trig_event.waveev, run);
+	cout << "E,T = " << ttf.Fit_event.trapE << ", " << ttf.Fit_event.trapT << endl;
+	PlotWave(ttf.Fit_event.waveev, run);
 }
 
 //Fit a peak in an energy spectrum
@@ -210,16 +210,16 @@ void TTN(int run) {
 	ttf.SetPath("Files/Dec15/Fixed");
 	ttf.Open(run);
 	ttf.GetEvent(0);
-	double lasttime = ttf.Trig_event.t;
+	double lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
-		double time = ttf.Trig_event.t;
-		if (ttf.Trig_event.E>0 && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240) {
+		double time = ttf.Fit_event.t;
+		if (ttf.Fit_event.E>0 && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240) {
 			double diff = time - lasttime;
 			if (diff < 15000) {
 				ht->Fill(diff);
 				if (diff > 400)
-					hPE->Fill(ttf.Trig_event.trapE);
+					hPE->Fill(ttf.Fit_event.trapE);
 			}
 			lasttime = time;
 		}
@@ -253,117 +253,117 @@ void CompareRuns(){
 	TH2D* hPT = new TH2D("hPT","hPT",500,0,50,emax/4.,0,emax);
 	ttf.SetPath("Files/Dec15/Fixed");
 	ttf.Open(27); double endtime = 4*500.;
-	ttf.GetEvent(0); double lasttime = ttf.Trig_event.t; int lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); double lasttime = ttf.Fit_event.t; int lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
-		double time = ttf.Trig_event.t + ttf.Trig_event.trapT;
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {	
+		double time = ttf.Fit_event.t + ttf.Fit_event.trapT;
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {	
 			double diff = time - lasttime;
 			if (diff < dmax) {
 				ht->Fill(diff);
-				hPT->Fill(diff*0.004,ttf.Trig_event.trapE*E1 + E0);
+				hPT->Fill(diff*0.004,ttf.Fit_event.trapE*E1 + E0);
 			}
 			if (diff > dmin && diff < dmax) {//4 to 24 us
-				hP->Fill(ttf.Trig_event.trapE*E1 + E0);
-				hch->Fill(ttf.Trig_event.chan,lastch);
+				hP->Fill(ttf.Fit_event.trapE*E1 + E0);
+				hch->Fill(ttf.Fit_event.chan,lastch);
 			}
 			lasttime = time;
-			lastch = ttf.Trig_event.chan;
+			lastch = ttf.Fit_event.chan;
 		}
 	}
 	ttf.Open(30); double endtime = 4*510.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t; lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t; lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
-		double time = ttf.Trig_event.t + ttf.Trig_event.trapT;
+		double time = ttf.Fit_event.t + ttf.Fit_event.trapT;
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff < dmax){
 				ht->Fill(diff);
-				hPT->Fill(diff*0.004,ttf.Trig_event.trapE*E1 + E0);
+				hPT->Fill(diff*0.004,ttf.Fit_event.trapE*E1 + E0);
 			}
 			if (diff > dmin && diff < dmax) {//4 to 24 us
-				hP->Fill(ttf.Trig_event.trapE*E1 + E0);
-				hch->Fill(ttf.Trig_event.chan,lastch);
+				hP->Fill(ttf.Fit_event.trapE*E1 + E0);
+				hch->Fill(ttf.Fit_event.chan,lastch);
 			}
 			lasttime = time;
-			lastch = ttf.Trig_event.chan;
+			lastch = ttf.Fit_event.chan;
 		}
 	}
 	ttf.Open(33); double endtime = 2250.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t; lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t; lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff < dmax){
 				ht->Fill(diff);
-				hPT->Fill(diff*0.004,ttf.Trig_event.trapE*E1 + E0);
+				hPT->Fill(diff*0.004,ttf.Fit_event.trapE*E1 + E0);
 			}
 			if (diff > dmin && diff < dmax) {//4 to 24 us
-				hP->Fill(ttf.Trig_event.trapE*E1 + E0);
-				hch->Fill(ttf.Trig_event.chan,lastch);
+				hP->Fill(ttf.Fit_event.trapE*E1 + E0);
+				hch->Fill(ttf.Fit_event.chan,lastch);
 			}
 			lasttime = time;
-			lastch = ttf.Trig_event.chan;
+			lastch = ttf.Fit_event.chan;
 		}
 	}
 	ttf.Open(35); double endtime = 1000.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t; lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t; lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff < dmax){
 				ht->Fill(diff);
-				hPT->Fill(diff*0.004,ttf.Trig_event.trapE*E1 + E0);
+				hPT->Fill(diff*0.004,ttf.Fit_event.trapE*E1 + E0);
 			}
 			if (diff > dmin && diff < dmax) {//4 to 24 us
-				hP->Fill(ttf.Trig_event.trapE*E1 + E0);
-				hch->Fill(ttf.Trig_event.chan,lastch);
+				hP->Fill(ttf.Fit_event.trapE*E1 + E0);
+				hch->Fill(ttf.Fit_event.chan,lastch);
 			}
 			lasttime = time;
-			lastch = ttf.Trig_event.chan;
+			lastch = ttf.Fit_event.chan;
 		}
 	}
 	ttf.Open(36); double endtime = 900.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t; lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t; lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff < dmax){
 				ht->Fill(diff);
-				hPT->Fill(diff*0.004,ttf.Trig_event.trapE*E1 + E0);
+				hPT->Fill(diff*0.004,ttf.Fit_event.trapE*E1 + E0);
 			}
 			if (diff > dmin && diff < dmax) {//4 to 24 us
-				hP->Fill(ttf.Trig_event.trapE*E1 + E0);
-				hch->Fill(ttf.Trig_event.chan,lastch);
+				hP->Fill(ttf.Fit_event.trapE*E1 + E0);
+				hch->Fill(ttf.Fit_event.chan,lastch);
 			}
 			lasttime = time;
-			lastch = ttf.Trig_event.chan;
+			lastch = ttf.Fit_event.chan;
 		}
 	}
 	ttf.Open(38); double endtime = 1800.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t; lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t; lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff < dmax){
 				ht->Fill(diff);
-				hPT->Fill(diff,ttf.Trig_event.trapE*E1 + E0);
+				hPT->Fill(diff,ttf.Fit_event.trapE*E1 + E0);
 			}
 			if (diff > dmin && diff < dmax) {//4 to 24 us
-				hP->Fill(ttf.Trig_event.trapE*E1 + E0);
-				hch->Fill(ttf.Trig_event.chan,lastch);
+				hP->Fill(ttf.Fit_event.trapE*E1 + E0);
+				hch->Fill(ttf.Fit_event.chan,lastch);
 			}
 			lasttime = time;
-			lastch = ttf.Trig_event.chan;
+			lastch = ttf.Fit_event.chan;
 		}
 	}
 	gROOT->cd();
@@ -379,49 +379,49 @@ void CompareRuns(){
 	//HV off, UCN on
 	TH1D* hB = new TH1D("hB","hB",emax/4.,0,emax);
 	ttf.Open(26); endtime = 4*220.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hB->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hB->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}
 	ttf.Open(31); endtime = 4*230.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hB->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hB->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}
 	ttf.Open(32); endtime = 4*100.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hB->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hB->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}
 	ttf.Open(37); double endtime = 1300.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t; lastch = ttf.Trig_event.chan;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t; lastch = ttf.Fit_event.chan;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hB->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hB->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}
@@ -433,38 +433,38 @@ void CompareRuns(){
 	//HV on, UCN off
 	TH1D* hO = new TH1D("hO","hO",emax/4,0,emax);
 	ttf.Open(29); endtime = 4*165.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hO->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hO->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}
 	ttf.Open(34); endtime = 540.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hO->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hO->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}
 	ttf.Open(39); endtime = 2500.;
-	ttf.GetEvent(0); lasttime = ttf.Trig_event.t;
+	ttf.GetEvent(0); lasttime = ttf.Fit_event.t;
 	for (int i = 0; i < ttf.GetNumEvents(); i++) {
 		ttf.GetEvent(i);
 		
-		if (ttf.Trig_event.E > thresh && ttf.Trig_event.shaping > 180 && ttf.Trig_event.shaping < 240 && ttf.Trig_event.t*tsmp < endtime && ttf.Trig_event.chan != 2 && ttf.Trig_event.chan < 16) {
+		if (ttf.Fit_event.E > thresh && ttf.Fit_event.shaping > 180 && ttf.Fit_event.shaping < 240 && ttf.Fit_event.t*tsmp < endtime && ttf.Fit_event.chan != 2 && ttf.Fit_event.chan < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
-				hO->Fill(ttf.Trig_event.trapE*E1 + E0);
+				hO->Fill(ttf.Fit_event.trapE*E1 + E0);
 			lasttime = time;
 		}
 	}

@@ -15,10 +15,12 @@
 #include <math.h>
 #include <cstring>
 
+#include "NITrigBinFile.hh"
 #include "NIFeb2015BinFile.hh"
 #include "NIJune2015BinFile.hh"
 #include "RawTreeFile.hh"
 #include "TrigTreeFile.hh"
+#include "FitTreeFile.hh"
 #include "TrapTreeFile.hh"
 #include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
@@ -33,6 +35,7 @@ using std::cin;
 
 void Usage(std::string program);
 void DoRaw(int filenum);
+void DoTrig(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
@@ -48,7 +51,7 @@ double invx(double* x, double* par);
 double enc2(double* x, double* par);
 
 std::string path;
-int dataformat; // 0 = feb, 1 = june
+int dataformat; // 0 = feb15, 1 = june15
 const int maxformat = 2; // only 2 formats so far
 const bool dodraw = true;
 
@@ -61,8 +64,7 @@ int main (int argc, char *argv[]) {
 
   cout << "Welcome to UCNB_Analyzer 1.0.0" << endl;
 
-  bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false, 
-	docal = false, doshapescan = false;
+  bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
   bool fileok = false;
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, 
 	smpcoll=-1, avethresh=-1, scansrc=-1;
@@ -135,6 +137,10 @@ int main (int argc, char *argv[]) {
 	Usage(argv[0]);
 	return 1;
       }
+      i++;
+    }
+    else if (strcmp(argv[i],"-trig")==0) {
+      dotrig = true;
       i++;
     }
     else if (strcmp(argv[i],"-fit")==0) {
@@ -284,11 +290,10 @@ int main (int argc, char *argv[]) {
       return 1;
     }
   }
-  
-  if (!docal && !doshapescan && (!fileok || (!doraw && !dotrap && !dofit && !docoll &&!doave))) {
+  if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoll &&!doave))) {
     if (!fileok)
       cout << "No file indicated" << endl;
-    if (!doraw && !dotrap && !dofit && !docoll && !doave)
+    if (!doraw && !dotrig && !dotrap && !dofit && !docoll && !doave)
       cout << "What do you want to do? " << endl;
     Usage(argv[0]);
     return 1;
@@ -306,6 +311,8 @@ int main (int argc, char *argv[]) {
 	for (int filenum = filenum1; filenum <= filenum2; filenum++) {
 		if (doraw)
 			DoRaw(filenum);
+		if (dotrig)
+			DoTrig(filenum);
 		if (dotrap)
 			DoTrap(filenum, trapthresh, decay, shaping, top);
 		if (dofit)
@@ -336,6 +343,7 @@ void Usage(std::string program) {
   cout << "Usage:   " << program  << " -f #1 [#2] -p path" << endl;
   cout << "-raw to convert .bin files to .root" << endl;
   cout << "      -format <format (0=feb,1=june)> to set data format (default 1)" << endl;
+  cout << "-trig to convert .trig files to .root" << endl;
   cout << "-sort to time-order .root file" << endl;
   cout << "-trap <threshold> to filter waveforms for events using linear trapezoid" << endl;
   cout << "      -decay <smp> to set linear trap decay constant" << endl;
@@ -358,8 +366,8 @@ void DoRaw(int filenum) {
 			InputFile[rio] = new NIFeb2015BinFile();
 		}
 		else if (dataformat == 1) {
-			InputEvent[0] = new NIJune2015BinFile::JuneBinEv_t;
-			InputFile[0] = new NIJune2015BinFile();
+			InputEvent[rio] = new NIJune2015BinFile::JuneBinEv_t;
+			InputFile[rio] = new NIJune2015BinFile();
 		}
 		InputFile[rio]->SetPath(path);
 		InputFile[rio]->Open(filenum, rio);
@@ -407,6 +415,54 @@ void DoRaw(int filenum) {
 	tmpname.append("/");
 	tmpname.append(RootFile.GetName());
 	RootFile.Close();
+	remove(tmpname.c_str());
+}
+
+void DoTrig(int filenum) {
+	//-----Open input/output files
+	NITrigBinFile InputFile;
+	if (path.compare("") != 0) { 
+		InputFile.SetPath(path);
+	}
+	if (!InputFile.Open(filenum)) {
+		cout << "InputFile Not Open!" << endl;
+		return;
+	}
+	TrigTreeFile TrigFile;
+	if (path.compare("") != 0) { 
+		TrigFile.SetPath(path);
+	}
+	TrigFile.SetTmp();
+	if (!TrigFile.Create(filenum)) {
+		cout << "TrigFile Not Open!" << endl;
+		return;
+	}
+	NITrigBinFile::TrigBinEv_t InputEvent;
+	while (InputFile.ReadNextEvent(InputEvent)) {
+		float ev = InputFile.GetPosition();
+		float nentries = InputFile.GetLength();
+		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
+		TrigFile.Trig_event.ch = InputEvent.board*MAXCH + InputEvent.channel;
+		TrigFile.Trig_event.t = (double)InputEvent.timestamp;
+		TrigFile.Trig_event.E = InputEvent.adc;
+		TrigFile.FillTree();
+	}
+	InputFile.Close();
+	
+	//-----Sort by timestamp
+	TrigTreeFile NewFile;
+	NewFile.SetPath(path);
+	if (!NewFile.Create(filenum)) {
+		cout << "Output file not open!" << endl;
+		return;
+	}
+	NewFile.Sort(TrigFile);
+	NewFile.Write();
+	NewFile.Close();
+	std::string tmpname = path;
+	tmpname.append("/");
+	tmpname.append(TrigFile.GetName());
+	TrigFile.Close();
 	remove(tmpname.c_str());
 }
 
@@ -487,10 +543,10 @@ void DoFit(int filenum, int thresh) {
 		cout << "Input file not open!" << endl;
 		return;
 	}
-	TrigTreeFile TrigFile;
-	TrigFile.SetPath(path);
+	FitTreeFile FitFile;
+	FitFile.SetPath(path);
 	
-	if (!TrigFile.Create(filenum)) {
+	if (!FitFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
 		return;
 	}
@@ -526,23 +582,23 @@ void DoFit(int filenum, int thresh) {
 		RootFile.GetEvent(ev-1);
 		trigger_t nexttrig;
 		while (TL.GetTrigger(nexttrig)) {
-			TrigFile.Trig_event.E = nexttrig.E;
-			TrigFile.Trig_event.t = nexttrig.T + (double)RootFile.NI_event.timestamp;
-			TrigFile.Trig_event.shaping = nexttrig.Shaping;
-			TrigFile.Trig_event.integ = nexttrig.Integration;
-			TrigFile.Trig_event.chi2 = nexttrig.Chi2;
-			TrigFile.Trig_event.trapE = nexttrig.TrapE;
-			TrigFile.Trig_event.trapT = nexttrig.TrapT;
-			TrigFile.Trig_event.rio = RootFile.NI_event.board;
-			TrigFile.Trig_event.rio_ch = RootFile.NI_event.channel;
-			TrigFile.Trig_event.chan = RootFile.NI_event.ch;
-			TrigFile.Trig_event.waveev = startev;
-			TrigFile.FillTree();
+			FitFile.Fit_event.E = nexttrig.E;
+			FitFile.Fit_event.t = nexttrig.T + (double)RootFile.NI_event.timestamp;
+			FitFile.Fit_event.shaping = nexttrig.Shaping;
+			FitFile.Fit_event.integ = nexttrig.Integration;
+			FitFile.Fit_event.chi2 = nexttrig.Chi2;
+			FitFile.Fit_event.trapE = nexttrig.TrapE;
+			FitFile.Fit_event.trapT = nexttrig.TrapT;
+			FitFile.Fit_event.rio = RootFile.NI_event.board;
+			FitFile.Fit_event.rio_ch = RootFile.NI_event.channel;
+			FitFile.Fit_event.chan = RootFile.NI_event.ch;
+			FitFile.Fit_event.waveev = startev;
+			FitFile.FillTree();
 		}
 	}//ev < NumEvents
-	TrigFile.Write();
+	FitFile.Write();
 	cout << "Done" << endl;
-	TrigFile.Close();
+	FitFile.Close();
 	RootFile.Close();	
 }
 
@@ -550,9 +606,9 @@ void DoColl(int filenum, int smp) {
   //In development
   cout << "Collecting single-event coincidences in file " << filenum << endl;
   //-----Open input/output files
-  TrigTreeFile TrigFile;
-  if (!TrigFile.Open(filenum)) {
-    cout << "Trig file Not Open!" << endl;
+  FitTreeFile FitFile;
+  if (!FitFile.Open(filenum)) {
+    cout << "Fit file Not Open!" << endl;
     return;
   }
   EventTreeFile EventFile;
@@ -560,13 +616,13 @@ void DoColl(int filenum, int smp) {
 		cout << "Output file not open!" << endl;
 		return;
 	}
-  int nentries = TrigFile.GetNumEvents();
+  int nentries = FitFile.GetNumEvents();
   int StartEv = 0;
   if (nentries == 0){
     EventFile.Write();
     cout << "No triggers: done" << endl;
     EventFile.Close();
-    TrigFile.Close();
+    FitFile.Close();
     return;
   }
   int numch = MAXCH*MAXRIO;
@@ -575,24 +631,24 @@ void DoColl(int filenum, int smp) {
     printf("Working....%d/%d  (%d %%)\r",StartEv,nentries,100*StartEv/nentries);
     for (int ch=0;ch<numch;ch++)
       EventFile.myEvent.E[ch] = 0;
-    TrigFile.GetEvent(StartEv);
-    EventFile.myEvent.t = TrigFile.Trig_event.t;
-    EventFile.myEvent.waveev = TrigFile.Trig_event.waveev;
+    FitFile.GetEvent(StartEv);
+    EventFile.myEvent.t = FitFile.Fit_event.t;
+    EventFile.myEvent.waveev = FitFile.Fit_event.waveev;
     //-----Get triggers within window
     int ev = StartEv;
     do {
-      EventFile.myEvent.E[TrigFile.Trig_event.chan] += TrigFile.Trig_event.E;
+      EventFile.myEvent.E[FitFile.Fit_event.chan] += FitFile.Fit_event.E;
       ev++;
       if (ev < nentries)
-	TrigFile.GetEvent(ev);
-    }while (ev < nentries && (TrigFile.Trig_event.t - EventFile.myEvent.t)<smp);
+	FitFile.GetEvent(ev);
+    }while (ev < nentries && (FitFile.Fit_event.t - EventFile.myEvent.t)<smp);
     EventFile.FillTree();
     StartEv = ev;
   } while (StartEv < nentries);
   EventFile.Write();
   cout << "Done" << endl;
   EventFile.Close();
-  TrigFile.Close();
+  FitFile.Close();
 }
 
 void DoAve(int filenum, int thresh) {
@@ -602,7 +658,7 @@ void DoAve(int filenum, int thresh) {
     cout << "Input file not open!" << endl;
     return;
   }
-  TrigTreeFile EvFile;
+  FitTreeFile EvFile;
   if (!EvFile.Open(filenum)) {
     cout << "Event file Not Open!" << endl;
     return;
@@ -613,8 +669,8 @@ void DoAve(int filenum, int thresh) {
   for (int ev=0;ev<nentries;ev++) {
     printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
     EvFile.GetEvent(ev);
-    if (EvFile.Trig_event.E>thresh && EvFile.Trig_event.integ < 1.5) {
-      RootFile.GetEvent(EvFile.Trig_event.waveev);
+    if (EvFile.Fit_event.E>thresh && EvFile.Fit_event.integ < 1.5) {
+      RootFile.GetEvent(EvFile.Fit_event.waveev);
       WA.BuildAve(RootFile.NI_event.length, RootFile.NI_event.wave);
     }
   }

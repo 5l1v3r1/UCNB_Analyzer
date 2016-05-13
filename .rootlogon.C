@@ -9,6 +9,7 @@
   gROOT->ProcessLine(".L src/RawTreeFile.cpp");
   gROOT->ProcessLine(".L src/WaveformAnalyzer.cpp");
   gROOT->ProcessLine(".L src/TrigTreeFile.cpp");
+  gROOT->ProcessLine(".L src/FitTreeFile.cpp");
   gROOT->ProcessLine(".L src/TreeFile.cpp");
   gROOT->ProcessLine(".L src/TrapTreeFile.cpp");
   gROOT->ProcessLine(".L src/EventTreeFile.cpp");
