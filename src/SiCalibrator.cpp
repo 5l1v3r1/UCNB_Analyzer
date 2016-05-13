@@ -166,6 +166,9 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 			//-----To do: replay missing files
 			cout << "Error in runlist, no file " << runlist[run].filenum << endl;
 			delete myfile;
+			for (int src=0; src<CalData.size(); src++) {
+				CalData[src].hSource = 0;
+			}
 			return;
 		}
 		for (int ev = 0; ev < trapf.GetNumEvents(); ev++ ) {
@@ -189,6 +192,9 @@ void SiCalibrator::BuildHists(TrapTreeFile &trapf) {
 		}
 	}
 	delete myfile;
+	for (int src=0; src<CalData.size(); src++) {
+		CalData[src].hSource = 0;
+	}
 	return;
 }
 

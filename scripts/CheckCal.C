@@ -204,8 +204,8 @@ void CeXScan(int ch) {
 	g->Draw("AP");
 }
 
-void FitCeX(int ch, int shaping) {
-	Open(200,shaping,shaping);
+void FitCeX(int ch, int shaping, int top) {
+	Open(200,shaping,top);
 	if (f!=0) {
 		TH2D* h2d = (TH2D*)f->Get("hCe139x");
 		TH1D* hp = h2d->ProjectionY("hp",ch+1,ch+1);
@@ -223,7 +223,7 @@ void FitCeX(int ch, int shaping) {
 		fitf->SetParameters(calib,scale,3,25,20);
 		fitf->SetParLimits(0,calib*0.9,calib*1.1);
 		//hp->Draw(); fitf->Draw("same");
-		hp->Fit(fitf,"","",100,300);
+		hp->Fit(fitf,"L","",100,300);
 	}
 }
 
@@ -238,6 +238,8 @@ double cex(double*x, double* par) {
 	const int num = 5;
 	double E[] = {33.034,33.442,37.72,37.801,38.726};
 	double branch[] = {22.5,41.0,3.95,7.62,2.46};
+	//from NIST XCOM
+	//double photoelec[] = {3.67,3.624,3.199,3.192,3.113}; //1e-7 cm^2/g
 	double loE = 22.5;
 	double hiE = 50;
 	double value = 0;
@@ -246,7 +248,70 @@ double cex(double*x, double* par) {
 		return;
 	}
 	for (int i=0;i<num;i++) {
-		double amp = branch[i];
+		double amp = branch[i]*pe(E[i]);
+		double adc = E[i];
+		value += amp*TMath::Exp(-1.*(xval-adc)*(xval-adc)/2./sigma/sigma);
+	}
+	value += expamp*scale*TMath::Exp(-1.*xval/exptail);
+	return value*scale;
+}
+
+
+double pe(double E) {
+	//www.nndc.bnl.gov
+	double sidensity = 2.329; //g/cm^3
+	double sithickness = 0.2; //cm
+	//from fit to photoelectric cs from NIST XCOM
+	return sidensity*sithickness*(1.313 - (120.095/E) + (3465.4/E/E));
+}
+
+void FitSnX(int ch, int shaping, int top) {
+	Open(200,shaping,top);
+	if (f!=0) {
+		TH2D* h2d = (TH2D*)f->Get("hSn113x");
+		TH1D* hp = h2d->ProjectionY("hp",ch+1,ch+1);
+		hp->SetDirectory(gROOT);
+		hp->GetXaxis()->SetRangeUser(10,500);
+		hp->Draw();
+		int maxbin = hp->GetMaximumBin();
+		double calib = 24./(double)maxbin;
+		cout << hp->GetMaximumBin() << endl;
+		hp->GetXaxis()->SetRangeUser(maxbin-150,maxbin+150);
+		TF1* fitf = (TF1*) gROOT->FindObject("fitf");
+		if (fitf != 0) delete fitf;
+		fitf = new TF1("fitf",snx,0,300,5);
+		fitf->SetParameters(calib,1,3,10,100);
+		cout << hp->GetBinContent(maxbin) <<"/"<<fitf->Eval(maxbin)<< endl;
+		double scale = hp->GetBinContent(maxbin)/fitf->Eval(maxbin);
+		fitf->SetParameters(calib,scale,3,10,100);
+		fitf->SetParLimits(0,calib*0.9,calib*1.1);
+		hp->Draw(); fitf->Draw("same");
+		hp->Fit(fitf,"L","",100,300);
+	}
+}
+
+double snx(double*x, double* par) {
+	double xval = *x;
+	double calib = par[0];
+	double scale = par[1];
+	double sigma = par[2];
+	double exptail = par[3];
+	double expamp = par[4];
+	xval = xval*calib;
+	const int num = 5;
+	double E[] = {24.002,24.21,27.238,27.276,27.863};
+	double branch[] = {28,51.8,4.66,9,2.39};
+	//from NIST XCOM
+	double photoelec[] = {5.124,5.078,4.487,4.484.382}; //1e-7 cm^2/g
+	double loE = 15;
+	double hiE = 50;
+	double value = 0;
+	if (xval < loE || xval > hiE) {
+		TF1::RejectPoint();
+		return;
+	}
+	for (int i=0;i<num;i++) {
+		double amp = branch[i]*photoelec[i]/photoelec[0];
 		double adc = E[i];
 		value += amp*TMath::Exp(-1.*(xval-adc)*(xval-adc)/2./sigma/sigma);
 	}
@@ -284,6 +349,21 @@ void FitENC2(TGraph* g) {
 	fitf->SetParameter(1,0);
 	fitf->FixParameter(2,h3);
 */
+	g->Fit(fitf);
+}
+void FitFWHM(TGraph* g) {
+	double x[11], y[11];
+	for (int i=0;i<11;i++) 
+		g->GetPoint(i,x[i],y[i]);
+	double yy[11];
+	for (int i=0;i<11;i++) {
+		yy[i] = TMath::Sqrt(y[i])*3.7*2.35/1.e3;
+		g->SetPoint(i,x[i],yy[i]);
+	}
+	g->Draw("AP");
+	TF1* fitf = (TF1*) gROOT->FindObject("fitE");
+	if (fitf != 0) delete fitf;
+	fitf = new TF1("fitE",enc2,10,1000,3);
 	g->Fit(fitf);
 }
 

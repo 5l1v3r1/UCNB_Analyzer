@@ -34,15 +34,16 @@ void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp);
 void DoAve(int filenum, int thresh);
 void DoCalib(int thresh, int decay, int shaping, int top);
-void DoShapeScan();
+void DoShapeScan(int scansrc);
 double cex(double*x, double* par);
+double snx(double*x, double* par);
 double invx(double* x, double* par);
 double enc2(double* x, double* par);
 
 std::string path;
 int dataformat; // 0 = feb, 1 = june
 const int maxformat = 2; // only 2 formats so far
-
+const bool dodraw = false;
 
 /*************************************************************************/
 //                            Main Function
@@ -56,7 +57,8 @@ int main (int argc, char *argv[]) {
   bool doraw = false, dotrap = false, dofit = false, docoll = false, doave = false, 
 	docal = false, doshapescan = false;
   bool fileok = false;
-  int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1;
+  int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, 
+	smpcoll=-1, avethresh=-1, scansrc=-1;
   dataformat = 1;
   path = "./";
 
@@ -256,6 +258,18 @@ int main (int argc, char *argv[]) {
     else if (strcmp(argv[i],"-shapescan")==0) {
       doshapescan = true;
       i++;
+      if (i+1 > argc) {
+	cout << "Missing argument for -shapescan" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
+	cout << "Missing valid argument for -shapescan" << endl;
+	Usage(argv[0]);
+	return 1;
+      }
+      scansrc = atoi(argv[i]);
+      i++;
     }
     else {
       cout << "Unrecognized parameter " << argv[i] << endl;
@@ -299,12 +313,14 @@ int main (int argc, char *argv[]) {
 	  DoCalib(trapthresh, decay, shaping, top);
   }
   if (doshapescan) {
-	  //myapp = new TApplication("myapp",0,0);
-	  DoShapeScan();
+	  if (dodraw)
+		myapp = new TApplication("myapp",0,0);
+	  DoShapeScan(scansrc);
   }
   cout << "Done." << endl;
-  //if (myapp != 0)
-	//myapp->Run();
+  if (dodraw)
+	if (myapp != 0)
+		myapp->Run();
   return 0; 
 
 }
@@ -321,7 +337,7 @@ void Usage(std::string program) {
   cout << "-fit <threshold> to filter waveforms for events using pulse fitting" << endl;
   cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
   cout << "-cal <threshold> to perform calibration" << endl;
-  cout << "-shapescan to perform shaping scan on 139Ce x-rays" << endl;
+  cout << "-shapescan <src> o perform shaping scan on 139Ce (src=5)or 113Sn (src=3) x-rays" << endl;
 }
 
 void DoRaw(int filenum) {
@@ -456,7 +472,7 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	remove(tmpname.c_str());
 }
 
-void DoFit(int filenum, int thresh) {
+void DoFit(int filenum, int thresh) {	
 	//-----Open input/output files
 	RawTreeFile RootFile;
 	RootFile.SetPath(path);
@@ -659,18 +675,26 @@ void DoCalib(int thresh, int decay, int shaping, int top) {
 	//cout << "Hit Ctrl+C to stop viewing plot and quit program." << endl;
 }
 
-void DoShapeScan() {
+void DoShapeScan(int src) {
+	if (src != 5 && src != 3) {
+		cout << "Shaping Scan aborted. Source " << src << " not yet handled." << endl;
+		return;
+	}
 	//Hard-coded parameters, maybe use config file eventually
-	int thresh = 35; int decay = 200;
+	int thresh = 35; int decay = 200; int top = 300;
 	const int num = 14;
+	//int sscan[] = {50,60,70,100,150,200,250,300,350,400,450};
 	int sscan[] = {35,50,60,70,100,150,200,250,300,350,400,450,500,600};
 	//double sscan[] = {35,50,60,70,100,150,200,250,300,350,400,450,500,600};
-	double Elo = 100, Ehi = 300;
 	//3.62 at 300K, 3.72 at 80K
 	double eVtoENC = 3.7;
 	//-----Create output file
 	std::string filename = path;
-	filename.append("ShapingScan.root");
+	filename.append("/");
+	if(src==5)
+		filename.append("ShapingScanCe.root");
+	if(src==3)
+		filename.append("ShapingScanSn.root");
 	TFile* myfile = new TFile(filename.c_str(),"RECREATE");
 	SiCalibrator calib;
 	calib.SetPath(path);
@@ -685,24 +709,42 @@ void DoShapeScan() {
 	TH1D* hh3 = new TH1D("h3","h3",48,0,48);
 	TH1D* hminsig = new TH1D("hminsig","hminsig",48,0,48);
 	int cnt;
+	double Elo, Ehi;
 	for (int ch=0; ch< 48; ch++) {
 		cnt = 0;
 		printf("Channel %d/%d\r",ch,48);fflush(stdout); 
 		for (int i=0;i<num;i++) {
-			int shape = sscan[i]; int top = shape;
+			int shape = sscan[i]; //top = shape;
 			calib.SetPars(thresh, decay, shape, top);
 			calib.Load();
-			TH1D* hp = calib.GetHist(5,ch);
+			TH1D* hp = calib.GetHist(src,ch);
 			if (hp!= 0) {
+				if (src == 3)
+					Elo = 10, Ehi = 500;
+				if (src == 5)
+					Elo = 100, Ehi = 300;
 				hp->GetXaxis()->SetRangeUser(Elo,Ehi);
 				if (hp->Integral(Elo,Ehi) > 0) {
 					int maxbin = hp->GetMaximumBin();
 					double calib = 33.5/(double)maxbin;
-					TF1* fitf = new TF1("fitf",cex,Elo,Ehi,5);
-					fitf->SetParameters(calib,1,3,25,20);
+					if (src==3)
+						calib = 24./(double)maxbin;
+					TF1* fitf;
+					if (src==3) {
+						fitf = new TF1("fitf",snx,Elo,Ehi,5);
+						fitf->SetParameters(calib,1,3,10,100);
+					}
+					if (src==5) {						
+						fitf = new TF1("fitf",cex,Elo,Ehi,5);
+						fitf->SetParameters(calib,1,3,25,20);
+					}
 					double scale = hp->GetBinContent(maxbin)/fitf->Eval(maxbin);
-					fitf->SetParameters(calib,scale,3,25,20);
+					fitf->SetParameter(1,scale);
+					fitf->SetParLimits(3,0,50);
 					hp->Fit(fitf,"QN","",Elo,Ehi);
+//					if (dodraw) {
+//						hp->Draw(); fitf->Draw("same"); return;
+//					}
 					sigma[cnt] = fitf->GetParameter(2);
 					fwhm[cnt] = sigma[cnt]*2.35;
 					ENC2[cnt] = sigma[cnt]*sigma[cnt]*1.e3*1.e3/eVtoENC/eVtoENC;
@@ -764,6 +806,32 @@ double cex(double*x, double* par) {
 	value += expamp*scale*TMath::Exp(-1.*xval/exptail);
 	return value*scale;
 }
+
+double snx(double*x, double* par) {
+	double xval = *x;
+	double calib = par[0];
+	double scale = par[1];
+	double sigma = par[2];
+	double exptail = par[3];
+	double expamp = par[4];
+	xval = xval*calib;
+	double loE = 15;
+	double hiE = 50;
+	double value = 0;
+	if (xval < loE || xval > hiE) {
+		TF1::RejectPoint();
+		return value;
+	}
+	int src = 3; //113Sn
+	for (int i=0; i<CalibSource::sourcelist[src].xrays.size(); i++) {
+		double amp = CalibSource::sourcelist[src].xrays[i].branch;
+		double adc = CalibSource::sourcelist[src].xrays[i].E;
+		value += amp*TMath::Exp(-1.*(xval-adc)*(xval-adc)/2./sigma/sigma);
+	}
+	value += expamp*scale*TMath::Exp(-1.*xval/exptail);
+	return value*scale;
+}
+
 
 //fit function 
 double invx(double* x, double* par) {

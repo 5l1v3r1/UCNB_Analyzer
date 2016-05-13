@@ -13,12 +13,13 @@
 vector<CalibSource::CalibSource_t> DefineSources();
 const vector<CalibSource::CalibSource_t> CalibSource::sourcelist = DefineSources();
 
+double pe(double E);
+
 /*************************************************************************/
 //                             DefineSources
 /*************************************************************************/
 vector<CalibSource::CalibSource_t> DefineSources() {
 	//if (maxtype != 0) return;
-	//www.nndc.bnl.gov
 	vector<CalibSource::CalibSource_t> slist;
 	int cnt = 0;
 	CalibSource::CalibSource_t Bi207;
@@ -38,12 +39,12 @@ vector<CalibSource::CalibSource_t> DefineSources() {
 	Bi207x.name = "Bi207x";
 	Bi207x.type = cnt++;
 	Bi207x.betas = Bi207.betas;
-	line.E = 10.6; line.branch = 33.2; Bi207x.xrays.push_back(line);
-	line.E = 72.805; line.branch = 21.4; Bi207x.xrays.push_back(line);
-	line.E = 74.969; line.branch = 35.7; Bi207x.xrays.push_back(line);
-	line.E = 84.45; line.branch = 4.31; Bi207x.xrays.push_back(line);
-	line.E = 84.938; line.branch = 8.27; Bi207x.xrays.push_back(line);
-	line.E = 87.3; line.branch = 3.02; Bi207x.xrays.push_back(line);
+	line.E = 10.6; line.branch = 33.2*pe(line.E); Bi207x.xrays.push_back(line);
+	line.E = 72.805; line.branch = 21.4*pe(line.E); Bi207x.xrays.push_back(line);
+	line.E = 74.969; line.branch = 35.7*pe(line.E); Bi207x.xrays.push_back(line);
+	line.E = 84.45; line.branch = 4.31*pe(line.E); Bi207x.xrays.push_back(line);
+	line.E = 84.938; line.branch = 8.27*pe(line.E); Bi207x.xrays.push_back(line);
+	line.E = 87.3; line.branch = 3.02*pe(line.E); Bi207x.xrays.push_back(line);
 	slist.push_back(Bi207x);
 	//Fill in extras
 	CalibSource::CalibSource_t Sn113;
@@ -58,11 +59,11 @@ vector<CalibSource::CalibSource_t> DefineSources() {
 	Sn113x.name = "Sn113x";
 	Sn113x.type = cnt++;
 	Sn113x.betas = Sn113.betas;
-	line.E = 24.002; line.branch = 28.0; Sn113x.xrays.push_back(line);
-	line.E = 24.21; line.branch = 51.8; Sn113x.xrays.push_back(line);
-	line.E = 27.238; line.branch = 4.66; Sn113x.xrays.push_back(line);
-	line.E = 27.276; line.branch = 9.0; Sn113x.xrays.push_back(line);
-	line.E = 27.863; line.branch = 2.39; Sn113x.xrays.push_back(line);
+	line.E = 24.002; line.branch = 28.0*pe(line.E); Sn113x.xrays.push_back(line);
+	line.E = 24.21; line.branch = 51.8*pe(line.E); Sn113x.xrays.push_back(line);
+	line.E = 27.238; line.branch = 4.66*pe(line.E); Sn113x.xrays.push_back(line);
+	line.E = 27.276; line.branch = 9.0*pe(line.E); Sn113x.xrays.push_back(line);
+	line.E = 27.863; line.branch = 2.39*pe(line.E); Sn113x.xrays.push_back(line);
 	slist.push_back(Sn113x);
 	CalibSource::CalibSource_t Ce139;
 	Ce139.name = "Ce139";
@@ -76,17 +77,24 @@ vector<CalibSource::CalibSource_t> DefineSources() {
 	Ce139x.name = "Ce139x";
 	Ce139x.type = cnt++;
 	Ce139x.betas = Ce139.betas;
-	line.E = 33.034; line.branch = 22.5; Ce139x.xrays.push_back(line);
-	line.E = 33.442; line.branch = 41.0; Ce139x.xrays.push_back(line);
-	line.E = 37.72; line.branch = 3.95; Ce139x.xrays.push_back(line);
-	line.E = 37.801; line.branch = 7.62; Ce139x.xrays.push_back(line);
-	line.E = 38.726; line.branch = 2.46; Ce139x.xrays.push_back(line);
+	line.E = 33.034; line.branch = 22.5*pe(line.E); Ce139x.xrays.push_back(line);
+	line.E = 33.442; line.branch = 41.0*pe(line.E); Ce139x.xrays.push_back(line);
+	line.E = 37.72; line.branch = 3.95*pe(line.E); Ce139x.xrays.push_back(line);
+	line.E = 37.801; line.branch = 7.62*pe(line.E); Ce139x.xrays.push_back(line);
+	line.E = 38.726; line.branch = 2.46*pe(line.E); Ce139x.xrays.push_back(line);
 	slist.push_back(Ce139x);
 //	maxtype = cnt;
 	return slist;
 //	CalData.resize(maxtype);
 }
 
+double pe(double E) {
+	//www.nndc.bnl.gov
+	double sidensity = 2.329; //g/cm^3
+	double sithickness = 0.2; //cm
+	//from fit to photoelectric cs from NIST XCOM
+	return sidensity*sithickness*(1.313 - (120.095/E) + (3465.4/E/E));
+}
 
 
 #endif // CALIBSOURCE_CPP__
