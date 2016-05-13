@@ -5,7 +5,7 @@ This software analyzes data taken using the UCNB/Nab detection system. These exp
 
 Collaboration
 -------------
-is welcome.  Contact Leah Broussard (leahb@lanl.gov).
+is welcome.  Contact Leah Broussard (broussardlj@ornl.gov).
 
 Requirements
 ------------
@@ -30,4 +30,4 @@ UCNB_Analyzer is based on work supported by the U.S. Department of Energy, Offic
 
 Copyright and license
 ---------------------
-Los Alamos National Security, LLC (LANS) owns the copyright to UCNB_Analyzer.  It is internally identified as LA-CC-15-062.  The license is GNU GPL v2.  See LICENSE.md for details.
+Copyright 2016 UT-Battelle, LLC.  See LICENSE.md for details.

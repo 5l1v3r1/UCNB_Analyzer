@@ -18,4 +18,5 @@
  // ROOT.gInterpreter.GenerateDictionary("vector<SiCalibrator::RunLog_t>","inc/SiCalibrator.h;vector");
   
   gROOT->ProcessLine(".L scripts/CheckCal.C");
+  gROOT->ProcessLine(".L scripts/Example.C");
 }

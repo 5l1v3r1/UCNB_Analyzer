@@ -1,6 +1,6 @@
-// Copyright 2016.  Los Alamos National Security, LLC.
+// Copyright 2016.  UT-Battelle, LLC.
 // This file is part of UCNB_Analyzer.
-// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+// See LICENSE.md included in top directory of this distribution.
 
 // Read calib files without using SiCalibrator: need to generate ROOT dictionaries for vector<struct>
 // Bizarre spectra features for low shaping times: hard-code shaping time scan for specific peaks :(

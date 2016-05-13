@@ -1,6 +1,6 @@
-// Copyright 2016.  Los Alamos National Security, LLC.
+// Copyright 2016.  UT-Battelle, LLC.
 // This file is part of UCNB_Analyzer.
-// This program is distributed under the terms of the GNU General Public License, version 2.0.  See LICENSE.md included in top directory of this distribution.
+// See LICENSE.md included in top directory of this distribution.
 
 // File: SiCalibrator.cpp
 // Purpose: Calibrates silicon detectors using known sources
