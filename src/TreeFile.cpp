@@ -264,11 +264,11 @@ void TreeFile::GetEvent(Int_t ev){
 void TreeFile::Sort(TreeFile& origfile, const char* sortstr){
 	TTree* orig = origfile.RootTree;
 	Int_t nentries = (Int_t)orig->GetEntries();
+	orig->SetEstimate(nentries);
 	orig->Draw(sortstr,"","goff");
 	Int_t *ix = new Int_t[nentries];
 	TMath::Sort(nentries,orig->GetV1(),&ix[0],false);
 	TTree *SortTree = (TTree*)orig->CloneTree(0);
-	
 	for (Int_t i=0;i<nentries;i++) {
 		printf("Writing....%d/%d  (%0.1lf %%)                       \r",i,nentries,100.*i/nentries);
 		orig->GetEntry(ix[i]);
