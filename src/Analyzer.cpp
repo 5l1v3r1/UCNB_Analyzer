@@ -606,23 +606,25 @@ void DoColl(int filenum, int smp) {
   //In development
   cout << "Collecting single-event coincidences in file " << filenum << endl;
   //-----Open input/output files
-  FitTreeFile FitFile;
-  if (!FitFile.Open(filenum)) {
-    cout << "Fit file Not Open!" << endl;
+  TrigTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
+  InputFile.SetPath(path);
+  if (!InputFile.Open(filenum)) {
+    cout << "Input file Not Open!" << endl;
     return;
   }
   EventTreeFile EventFile;
+  EventFile.SetPath(path);
   if (!EventFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
 		return;
 	}
-  int nentries = FitFile.GetNumEvents();
+  int nentries = InputFile.GetNumEvents();
   int StartEv = 0;
   if (nentries == 0){
     EventFile.Write();
     cout << "No triggers: done" << endl;
     EventFile.Close();
-    FitFile.Close();
+    InputFile.Close();
     return;
   }
   int numch = MAXCH*MAXRIO;
@@ -631,24 +633,23 @@ void DoColl(int filenum, int smp) {
     printf("Working....%d/%d  (%d %%)\r",StartEv,nentries,100*StartEv/nentries);
     for (int ch=0;ch<numch;ch++)
       EventFile.myEvent.E[ch] = 0;
-    FitFile.GetEvent(StartEv);
-    EventFile.myEvent.t = FitFile.Fit_event.t;
-    EventFile.myEvent.waveev = FitFile.Fit_event.waveev;
+    InputFile.GetEvent(StartEv);
+    EventFile.myEvent.t = InputFile.Trig_event.t;
     //-----Get triggers within window
     int ev = StartEv;
     do {
-      EventFile.myEvent.E[FitFile.Fit_event.chan] += FitFile.Fit_event.E;
+      EventFile.myEvent.E[InputFile.Trig_event.ch] += InputFile.Trig_event.E;
       ev++;
       if (ev < nentries)
-	FitFile.GetEvent(ev);
-    }while (ev < nentries && (FitFile.Fit_event.t - EventFile.myEvent.t)<smp);
+	InputFile.GetEvent(ev);
+    }while (ev < nentries && (InputFile.Trig_event.t - EventFile.myEvent.t)<smp);
     EventFile.FillTree();
     StartEv = ev;
   } while (StartEv < nentries);
   EventFile.Write();
   cout << "Done" << endl;
   EventFile.Close();
-  FitFile.Close();
+  InputFile.Close();
 }
 
 void DoAve(int filenum, int thresh) {
