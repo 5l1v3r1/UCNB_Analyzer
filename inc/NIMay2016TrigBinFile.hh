@@ -2,11 +2,11 @@
 // This file is part of UCNB_Analyzer.
 // See LICENSE.md included in top directory of this distribution.
 
-// File: NITrigBinFile.hh
-// Purpose: Opens binary files in NI trig format
+// File: NIMay2016TrigBinFile.hh
+// Purpose: Opens binary files in NI May 2016 trig format
  
-#ifndef NI_TRIG_BIN_FILE_HH__
-#define NI_TRIG_BIN_FILE_HH__
+#ifndef NI_MAY_TRIG_BIN_FILE_HH__
+#define NI_MAY_TRIG_BIN_FILE_HH__
 
 #include <vector>
 
@@ -16,27 +16,28 @@ using std::cout;
 using std::endl;
 using std::vector;
 
-class NITrigBinFile : public BinFile
+class NIMay2016TrigBinFile : public BinFile
 {
 public: 
-  struct TrigBinEv_t : public BinEv_t{
+  struct MayTrigBinEv_t : public BinEv_t{
     unsigned long long int timestamp;
     int board;
     short channel;
     short adc;
   };
+  unsigned long long int starttimestamp;
 private:
   bool ReadHeader();
   bool readheader;
 public: 
-	NITrigBinFile();
-	NITrigBinFile(std::string path, std::string name);
-	NITrigBinFile(std::string pathname);
-	~NITrigBinFile();
+	NIMay2016TrigBinFile();
+	NIMay2016TrigBinFile(std::string path, std::string name);
+	NIMay2016TrigBinFile(std::string pathname);
+	~NIMay2016TrigBinFile();
 	using BinFile::Open;
 	bool Open(int filenum, int rionum = -1);
 	bool ReadNextEvent(BinEv_t& NI_event);
 
 };
 
-#endif // __NI_TRIG_BIN_FILE_HH__
+#endif // __NI_MAY_TRIG_BIN_FILE_HH__

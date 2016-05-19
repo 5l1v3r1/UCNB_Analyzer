@@ -17,6 +17,8 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "NIDec2015TrigBinFile.hh"
+#include "NIMay2016TrigBinFile.hh"
 #include "TreeFile.hh"
 
 using std::cout;
@@ -35,6 +37,9 @@ public:
   event_t Trig_event;
   TrigTreeFile();
   ~TrigTreeFile();
+  bool FillEvent(BinFile::BinEv_t* BinEv); 
+  bool FillDecEvent(NIDec2015TrigBinFile::DecTrigBinEv_t* DecTrigBinEv);
+  bool FillMayEvent(NIMay2016TrigBinFile::MayTrigBinEv_t* MayTrigBinEv);
   using TreeFile::Sort;
   void Sort(TreeFile& origfile);
 private:

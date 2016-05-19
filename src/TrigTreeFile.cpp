@@ -48,6 +48,41 @@ void TrigTreeFile::MakeBranches() {
 }
 
 /*************************************************************************/
+//                             FillEvent
+/*************************************************************************/
+
+bool TrigTreeFile::FillEvent(BinFile::BinEv_t* BinEv) {
+	NIDec2015TrigBinFile::DecTrigBinEv_t* DecTrigBinEv;
+	DecTrigBinEv = dynamic_cast<NIDec2015TrigBinFile::DecTrigBinEv_t*>(BinEv);
+	NIMay2016TrigBinFile::MayTrigBinEv_t* MayTrigBinEv;
+	MayTrigBinEv = dynamic_cast<NIMay2016TrigBinFile::MayTrigBinEv_t*>(BinEv);
+	if (DecTrigBinEv) {
+		return FillDecEvent(DecTrigBinEv);
+	}
+	else if (MayTrigBinEv) {
+		return FillMayEvent(MayTrigBinEv);		
+	}
+	else 
+		return false;
+}
+  
+bool TrigTreeFile::FillDecEvent(NIDec2015TrigBinFile::DecTrigBinEv_t* DecTrigBinEv){
+	Trig_event.ch = DecTrigBinEv->board*MAXCH + DecTrigBinEv->channel;
+	Trig_event.t = (double)DecTrigBinEv->timestamp;
+	Trig_event.E = DecTrigBinEv->adc;
+	FillTree();
+	return true;
+}
+  
+bool TrigTreeFile::FillMayEvent(NIMay2016TrigBinFile::MayTrigBinEv_t* MayTrigBinEv){
+	Trig_event.ch = MayTrigBinEv->board*MAXCH + MayTrigBinEv->channel;
+	Trig_event.t = (double)MayTrigBinEv->timestamp;
+	Trig_event.E = MayTrigBinEv->adc;
+	FillTree();
+	return true;
+}
+
+/*************************************************************************/
 //                                 Sort
 /*************************************************************************/
 

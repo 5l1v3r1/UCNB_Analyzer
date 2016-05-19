@@ -15,7 +15,8 @@
 #include <math.h>
 #include <cstring>
 
-#include "NITrigBinFile.hh"
+#include "NIDec2015TrigBinFile.hh"
+#include "NIMay2016TrigBinFile.hh"
 #include "NIFeb2015BinFile.hh"
 #include "NIJune2015BinFile.hh"
 #include "RawTreeFile.hh"
@@ -51,7 +52,7 @@ double invx(double* x, double* par);
 double enc2(double* x, double* par);
 
 std::string path;
-int dataformat; // 0 = feb15, 1 = june15
+int dataformat; // 0 = feb15, 1 = june15, 2 = may16
 const int maxformat = 2; // only 2 formats so far
 const bool dodraw = true;
 
@@ -66,9 +67,8 @@ int main (int argc, char *argv[]) {
 
   bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
   bool fileok = false;
-  int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, 
-	smpcoll=-1, avethresh=-1, scansrc=-1;
-  dataformat = 1;
+  int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1, scansrc=-1;
+  dataformat = 2;
   path = "./";
 
   //-----Parse parameters
@@ -342,7 +342,7 @@ int main (int argc, char *argv[]) {
 void Usage(std::string program) {
   cout << "Usage:   " << program  << " -f #1 [#2] -p path" << endl;
   cout << "-raw to convert .bin files to .root" << endl;
-  cout << "      -format <format (0=feb,1=june)> to set data format (default 1)" << endl;
+  cout << "      -format <format (0=feb,1=june,2=may)> to set data format (default 2)" << endl;
   cout << "-trig to convert .trig files to .root" << endl;
   cout << "-sort to time-order .root file" << endl;
   cout << "-trap <threshold> to filter waveforms for events using linear trapezoid" << endl;
@@ -365,7 +365,7 @@ void DoRaw(int filenum) {
 			InputEvent[rio] = new NIFeb2015BinFile::FebBinEv_t;
 			InputFile[rio] = new NIFeb2015BinFile();
 		}
-		else if (dataformat == 1) {
+		else if (dataformat == 1 || dataformat == 2) {
 			InputEvent[rio] = new NIJune2015BinFile::JuneBinEv_t;
 			InputFile[rio] = new NIJune2015BinFile();
 		}
@@ -385,6 +385,11 @@ void DoRaw(int filenum) {
 	RootFile.SetTmp();
 	if (!RootFile.Create(filenum)) {
 		cout << "Input file not open!" << endl;
+		for (int rio=0;rio<nfiles;rio++) {
+			InputFile[rio]->Close();  
+			delete InputFile[rio];
+			delete InputEvent[rio];  
+		}
 		return;
 	}
 	bool goodevent = true;
@@ -420,14 +425,26 @@ void DoRaw(int filenum) {
 
 void DoTrig(int filenum) {
 	//-----Open input/output files
-	NITrigBinFile InputFile;
+	BinFile* InputFile;
+	BinFile::BinEv_t* InputEvent;
+	if (dataformat == 0 || dataformat == 1) {
+		InputFile = new NIDec2015TrigBinFile();
+		InputEvent = new NIDec2015TrigBinFile::DecTrigBinEv_t;
+	}
+	else if (dataformat == 2) {
+		InputFile = new NIMay2016TrigBinFile();
+		InputEvent = new NIMay2016TrigBinFile::MayTrigBinEv_t;
+	}
 	if (path.compare("") != 0) { 
-		InputFile.SetPath(path);
+		InputFile->SetPath(path);
 	}
-	if (!InputFile.Open(filenum)) {
-		cout << "InputFile Not Open!" << endl;
+	InputFile->Open(filenum);
+	if (!InputFile->IsOpen()) {
+		cout << "Input file not open!" << endl;
+		delete InputFile;
+		delete InputEvent;
 		return;
-	}
+	}	
 	TrigTreeFile TrigFile;
 	if (path.compare("") != 0) { 
 		TrigFile.SetPath(path);
@@ -435,20 +452,19 @@ void DoTrig(int filenum) {
 	TrigFile.SetTmp();
 	if (!TrigFile.Create(filenum)) {
 		cout << "TrigFile Not Open!" << endl;
+		InputFile->Close();  
+		delete InputFile;
+		delete InputEvent;  
 		return;
 	}
-	NITrigBinFile::TrigBinEv_t InputEvent;
-	while (InputFile.ReadNextEvent(InputEvent)) {
-		float ev = InputFile.GetPosition();
-		float nentries = InputFile.GetLength();
+	while (InputFile->ReadNextEvent(*InputEvent)) {
+		float ev = InputFile->GetPosition();
+		float nentries = InputFile->GetLength();
 		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
-		TrigFile.Trig_event.ch = InputEvent.board*MAXCH + InputEvent.channel;
-		TrigFile.Trig_event.t = (double)InputEvent.timestamp;
-		TrigFile.Trig_event.E = InputEvent.adc;
-		TrigFile.FillTree();
+		TrigFile.FillEvent(InputEvent);
 	}
-	InputFile.Close();
-	
+	InputFile->Close();
+	delete InputFile;
 	//-----Sort by timestamp
 	TrigTreeFile NewFile;
 	NewFile.SetPath(path);

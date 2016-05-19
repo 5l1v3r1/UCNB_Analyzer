@@ -2,25 +2,25 @@
 // This file is part of UCNB_Analyzer.
 // See LICENSE.md included in top directory of this distribution.
 
-// File: NITrigBinFile.hh
+// File: NIMay2016TrigBinFile.hh
 // Purpose: Opens binary files in NI trig format
 
-#ifndef NI_TRIG_BIN_FILE_CPP__
-#define NI_TRIG_BIN_FILE_CPP__
+#ifndef NI_MAY_TRIG_BIN_FILE_CPP__
+#define NI_MAY_TRIG_BIN_FILE_CPP__
 
-#include "NITrigBinFile.hh"
+#include "NIMay2016TrigBinFile.hh"
 
 /*************************************************************************/
 //                           Constructors
 /*************************************************************************/
-NITrigBinFile::NITrigBinFile() {
+NIMay2016TrigBinFile::NIMay2016TrigBinFile() {
 }
 
-NITrigBinFile::NITrigBinFile(std::string path, std::string name) {
+NIMay2016TrigBinFile::NIMay2016TrigBinFile(std::string path, std::string name) {
   Open(path,name);
 }
 
-NITrigBinFile::NITrigBinFile(std::string filename) {
+NIMay2016TrigBinFile::NIMay2016TrigBinFile(std::string filename) {
   Open(filename);
 }
 
@@ -28,14 +28,14 @@ NITrigBinFile::NITrigBinFile(std::string filename) {
 /*************************************************************************/
 //                             Destructor
 /*************************************************************************/
-NITrigBinFile::~NITrigBinFile() {
+NIMay2016TrigBinFile::~NIMay2016TrigBinFile() {
   Close();
 }
 
 /*************************************************************************/
 //                                Open   
 /*************************************************************************/
-bool NITrigBinFile::Open(int filenum, int rionum){
+bool NIMay2016TrigBinFile::Open(int filenum, int rionum){
 	char tempstr[255];
 	sprintf(tempstr,"Run_%d.trig",filenum);
 	std::string filename = tempstr;
@@ -45,26 +45,20 @@ bool NITrigBinFile::Open(int filenum, int rionum){
 /*************************************************************************/
 //                             ReadHeader
 /*************************************************************************/
-bool NITrigBinFile::ReadHeader() {
+bool NIMay2016TrigBinFile::ReadHeader() {
   if (!IsOpen()) 
     return false;
-  char dummy = '0';
-  int i = 0;
-  while (dummy != 'M' && GetPosition()<25) {
-	fFileStream.read(&dummy,1);
-  }
-  if (GetPosition()==25)
-	Reset();
+  fFileStream.read(reinterpret_cast<char *>(&(starttimestamp)),8);
   readheader = true;
 }
 
 /*************************************************************************/
 //                             ReadEvent
 /*************************************************************************/
-bool NITrigBinFile::ReadNextEvent(BinEv_t& NI_event) {
-  TrigBinEv_t* Trig_event = dynamic_cast<TrigBinEv_t*>(&NI_event);
+bool NIMay2016TrigBinFile::ReadNextEvent(BinEv_t& NI_event) {
+  MayTrigBinEv_t* Trig_event = dynamic_cast<MayTrigBinEv_t*>(&NI_event);
   if (!Trig_event) {
-    cout << "NITrigBinFile::ReadNextEvent() requires TrigBinEv_t types" << endl;
+    cout << "NIMay2016TrigBinFile::ReadNextEvent() requires TrigBinEv_t types" << endl;
     return false;
   }
 
@@ -85,6 +79,6 @@ bool NITrigBinFile::ReadNextEvent(BinEv_t& NI_event) {
 
 
 
-#endif // __NI_TRIG_BIN_FILE_CPP__
+#endif // __NI_MAY_TRIG_BIN_FILE_CPP__
 
 
