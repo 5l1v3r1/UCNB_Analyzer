@@ -70,7 +70,7 @@ public:
 	~SiCalibrator();
 	void SetPath(std::string newpath) {mypath = newpath; pathset = true;};
 	void SetPars(int thresh, int decay, int shaping, int top);
-	void Load();
+	bool Load();
 	TH1D* GetHist(int src, int ch);
 	void DefineDetector(vector<int> newdetector) {detector.swap(newdetector);};
 	void DefineRunLog(vector<int> runlist, vector<int> type);

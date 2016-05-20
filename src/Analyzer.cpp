@@ -717,7 +717,15 @@ void DoShapeScan(int src) {
 		for (int i=0;i<num;i++) {
 			int shape = sscan[i]; //top = shape;
 			calib.SetPars(thresh, decay, shape, top);
-			calib.Load();
+			if (!calib.Load()) {
+				delete fenc;
+				delete hh1;
+				delete hh2;
+				delete hh3;
+				delete hminsig;
+				myfile->Close();
+				return;
+			}
 			TH1D* hp = calib.GetHist(src,ch);
 			if (hp!= 0) {
 				if (src == 3)
@@ -737,16 +745,25 @@ void DoShapeScan(int src) {
 					}
 					if (src==5) {						
 						fitf = new TF1("fitf",cex,Elo,Ehi,5);
-						fitf->SetParameters(calib,1,3,25,20);
+						fitf->SetParameters(calib,1,3,25,2);
 					}
 					double scale = hp->GetBinContent(maxbin)/fitf->Eval(maxbin);
 					fitf->SetParameter(1,scale);
 					fitf->SetParLimits(3,0,50);
 					hp->Fit(fitf,"QN","",Elo,Ehi);
-//					if (dodraw) {
-//						hp->Draw(); fitf->Draw("same"); return;
-//					}
+					hp->Fit(fitf,"QN","",Elo,Ehi);
+					if (dodraw) {
+						if (ch==0 && shape==250) {
+							for (int par=0;par<5;par++)
+								cout << "par " << par << " : " << fitf->GetParameter(par) << endl;
+							hp->Draw(); fitf->Draw("same"); 
+							return;}
+					}
 					sigma[cnt] = fitf->GetParameter(2);
+					if (dodraw && ch==0) {
+						cout << "Shaping: " << shape << " : " << sigma[cnt] << endl;
+						cout << "calib " << 33.5/fitf->GetParameter(0) << endl;
+					}
 					fwhm[cnt] = sigma[cnt]*2.35;
 					ENC2[cnt] = sigma[cnt]*sigma[cnt]*1.e3*1.e3/eVtoENC/eVtoENC;
 					scan[cnt] = sscan[i]*4.e-3; //us

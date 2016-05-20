@@ -58,13 +58,17 @@ void SiCalibrator::SetPars(int th, int d, int s, int t) {
 /*************************************************************************/
 //                                 Load
 /*************************************************************************/
-void SiCalibrator::Load() {
+bool SiCalibrator::Load() {
 	char tmpname[255];
 	sprintf(tmpname,"/SumCalData_th%dd%ds%dt%d.root",thresh,decay,shaping,top);
 	std::string fname = tmpname;
 	std::string filename = mypath;
 	filename.append(fname);
 	TFile* myfile = new TFile(filename.c_str());
+	if (!myfile->IsOpen()){ 
+		cout << "Error " << filename << " not found " << endl;
+		return false;
+	}
 	for (int src=0; src < CalData.size(); src++) {
 		if (CalData[src].hSource != 0) delete CalData[src].hSource;
 		char name[255];
@@ -100,6 +104,7 @@ void SiCalibrator::Load() {
 		}
 	}
 	myfile->Close();
+	return true;
 }
 
 /*************************************************************************/

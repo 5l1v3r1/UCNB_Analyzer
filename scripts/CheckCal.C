@@ -218,9 +218,9 @@ void FitCeX(int ch, int shaping, int top) {
 		TF1* fitf = (TF1*) gROOT->FindObject("fitf");
 		if (fitf != 0) delete fitf;
 		fitf = new TF1("fitf",cex,0,300,5);
-		fitf->SetParameters(calib,1,3,25,20);
+		fitf->SetParameters(calib,1,3,25,2);
 		double scale = hp->GetBinContent(maxbin)/fitf->Eval(maxbin);
-		fitf->SetParameters(calib,scale,3,25,20);
+		fitf->SetParameters(calib,scale,3,25,2);
 		fitf->SetParLimits(0,calib*0.9,calib*1.1);
 		//hp->Draw(); fitf->Draw("same");
 		hp->Fit(fitf,"L","",100,300);
