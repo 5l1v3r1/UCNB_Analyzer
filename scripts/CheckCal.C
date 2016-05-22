@@ -343,7 +343,14 @@ void FitENC2(TGraph* g) {
 	*/
 	TF1* fitf = (TF1*) gROOT->FindObject("fitE");
 	if (fitf != 0) delete fitf;
-	fitf = new TF1("fitE",enc2,10,1000,3);
+	fitf = new TF1("fitE",enc2,0,10,3);
+	fitf->SetParameters(20000,80000,50000);
+
+	fitf->SetParLimits(0,10000,50000);
+	fitf->SetParLimits(1,0,100000);
+	fitf->SetParLimits(2,10000,100000);
+	
+	fitf->SetNpx(1000);
 	/*
 	fitf->FixParameter(0,h1);
 	fitf->SetParameter(1,0);
@@ -352,11 +359,12 @@ void FitENC2(TGraph* g) {
 	g->Fit(fitf);
 }
 void FitFWHM(TGraph* g) {
-	double x[11], y[11];
-	for (int i=0;i<11;i++) 
+	int n = g->GetN();
+	vector<double> x(n), y(n);
+	for (int i=0;i<n;i++) 
 		g->GetPoint(i,x[i],y[i]);
-	double yy[11];
-	for (int i=0;i<11;i++) {
+	vector<double> yy(11);
+	for (int i=0;i<n;i++) {
 		yy[i] = TMath::Sqrt(y[i])*3.7*2.35/1.e3;
 		g->SetPoint(i,x[i],yy[i]);
 	}
