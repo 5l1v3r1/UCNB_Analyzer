@@ -9,6 +9,8 @@ TFile *f = 0;
 //3.62 at 300K, 3.72 at 80K
 double eVtoENC = 3.7;
 
+
+
 void Open(int d, int s, int t) {
 	TString name = "Files/Sources/SumCalData_th35d";
 	name += d; name += "s"; name += s; name += "t"; name += t;
@@ -319,6 +321,103 @@ double snx(double*x, double* par) {
 	return value*scale;
 }
 
+	TCanvas* c = new TCanvas();
+void PrintAlltheThings(int ch) {
+	double q = 1.60218e-10; //nC
+	double TrapA3 = 1.67;
+	double ustos = 1.e6;
+	c->SetLogx();
+	c->SetLogy();
+		PlotScanResults(ch,"Q");
+		TF1* foo = (TF1*)gROOT->FindObject("fitsnx");
+		cout << "Ch" << ch << " Snx ";
+		for (int p=0;p<3;p++)
+			cout << foo->GetParameter(p) << "\t";
+		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		cout << nA <<  " nA" << endl;
+		TF1* foo = (TF1*)gROOT->FindObject("fitcex");
+		cout << "Ch" << ch << " Cex ";
+		for (int p=0;p<3;p++)
+			cout << foo->GetParameter(p) << "\t";
+		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		cout << nA <<  " nA" << endl;
+		TF1* foo = (TF1*)gROOT->FindObject("fitceb");
+		cout << "Ch" << ch << " Ceb ";
+		for (int p=0;p<3;p++)
+			cout << foo->GetParameter(p) << "\t";
+		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		cout << nA <<  " nA" << endl;
+		TF1* foo = (TF1*)gROOT->FindObject("fitsnb");
+		cout << "Ch" << ch << " Snb ";
+		for (int p=0;p<3;p++)
+			cout << foo->GetParameter(p) << "\t";
+		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		cout << nA <<  " nA" << endl;
+		TF1* foo = (TF1*)gROOT->FindObject("fitbib");
+		cout << "Ch" << ch << " Bib ";
+		for (int p=0;p<3;p++)
+			cout << foo->GetParameter(p) << "\t";
+		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		cout << nA <<  " nA" << endl;
+		cout <<"*****************************" << endl;
+}
+
+void PlotScanResults(int ch, char* fitopt) {
+	TFile* f = new TFile("Files/Sources/ShapingScanSnb.root");
+	TString gname = "g";
+	gname += ch;
+	TGraph* g = (TGraph*)f->Get(gname);
+	g->GetYaxis()->SetRangeUser(1.e5,1.e6);
+	g->Draw("AP");
+	TF1* fitf = new TF1("fitsnb",enc2,0,10,3);
+	fitf->SetParameters(20000,80000,50000);
+	fitf->SetNpx(1000);
+	fitf->SetLineColor(kBlack);
+	g->Fit(fitf,fitopt);
+	f->Close();
+	f = new TFile("Files/Sources/ShapingScanSnx.root");
+	TGraph* g = (TGraph*)f->Get(gname);
+	g->SetMarkerColor(kBlue);
+	g->Draw("P");
+	fitf = new TF1("fitsnx",enc2,0,10,3);
+	fitf->SetParameters(20000,80000,50000);
+	fitf->SetNpx(1000);
+	fitf->SetLineColor(kBlue);
+	g->Fit(fitf,fitopt);
+	f->Close();
+	f = new TFile("Files/Sources/ShapingScanCeb.root");
+	TGraph* g = (TGraph*)f->Get(gname);
+	g->SetMarkerColor(kGreen);
+	g->Draw("P");
+	fitf = new TF1("fitceb",enc2,0,10,3);
+	fitf->SetParameters(20000,80000,50000);
+	fitf->SetParLimits(1,50000,150000);
+	fitf->SetNpx(1000);
+	fitf->SetLineColor(kGreen);
+	g->Fit(fitf,fitopt,"",0.55,10);
+	f->Close();
+	f = new TFile("Files/Sources/ShapingScanCex.root");
+	TGraph* g = (TGraph*)f->Get(gname);
+	g->SetMarkerColor(kRed);
+	g->Draw("P");
+	fitf = new TF1("fitcex",enc2,0,10,3);
+	fitf->SetParameters(20000,80000,50000);
+	fitf->SetNpx(1000);
+	fitf->SetLineColor(kRed);
+	g->Fit(fitf,fitopt);
+	f->Close();
+	f = new TFile("Files/Sources/ShapingScanBib.root");
+	TGraph* g = (TGraph*)f->Get(gname);
+	g->SetMarkerColor(kViolet);
+	g->Draw("P");
+	fitf = new TF1("fitbib",enc2,0,10,3);
+	fitf->SetParameters(20000,80000,50000);
+	fitf->SetNpx(1000);
+	fitf->SetLineColor(kViolet);
+	g->Fit(fitf,fitopt);
+	f->Close();
+}
+
 void FitENC2(TGraph* g) {
 	g->Draw("AP");
 	/*
@@ -345,11 +444,11 @@ void FitENC2(TGraph* g) {
 	if (fitf != 0) delete fitf;
 	fitf = new TF1("fitE",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
-
+/*
 	fitf->SetParLimits(0,10000,50000);
 	fitf->SetParLimits(1,0,100000);
 	fitf->SetParLimits(2,10000,100000);
-	
+	*/
 	fitf->SetNpx(1000);
 	/*
 	fitf->FixParameter(0,h1);
