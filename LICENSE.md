@@ -7,3 +7,5 @@ UT-BATTELLE, LLC
 for the
 U.S. DEPARTMENT OF ENERGY
 under contract DE-AC05-00OR22725
+
+Based on UCNB_Analyzer v1.0, copyright Los Alamos National Security, LLC.

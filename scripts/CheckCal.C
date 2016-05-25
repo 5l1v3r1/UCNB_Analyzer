@@ -4,6 +4,8 @@
 
 // Read calib files without using SiCalibrator: need to generate ROOT dictionaries for vector<struct>
 // Bizarre spectra features for low shaping times: hard-code shaping time scan for specific peaks :(
+// CebScan and related functions perform shaping scans
+// PlotAlltheThings, PlotScanResults, PlotScan, FitENC2, SumResolutions, and Sumh3 plot results from UCNB_Analyzer program. -- still some development needed to clean up misbehaving spectra.
 
 TFile *f = 0;
 //3.62 at 300K, 3.72 at 80K

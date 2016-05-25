@@ -11,18 +11,19 @@ Main program
 The main program source code is in src/Analyzer.cpp.  The software is invoked by running the executable Analyzer and passing parameters by flags:
 
 ```
--f # [#]:   (required) File # or range of files # # to be processed
--p "":      Path "" to the files to be read/written
--raw:       Read (raw) events in binary files into TTree in a ROOT TFiles
--format #:  Numerical indicator of which binary format version in use (current = 1)
--sort:      Sort events by time (necessary if boards aren't synchronized)
--trap #:    Filter waveforms for events using linear trapezoid
--decay #:   Set linear trap decay constant #
--shaping #: Set linear trap shaping time #
--top #:     Set linear trap flat top length #
--fit #:     Fit waveforms to find real detector events above threshold #
--coll #:    (In development) Collect detector events into coincidences within a window of # samples
--ave #:      Build an average pulse shape from processed events above threshold #
+-f # [#]:   	(required) File # or range of files # # to be processed
+-p "":    		Path "" to the files to be read/written
+-raw:       	Read (raw) events in binary files into TTree in a ROOT TFiles
+-format #:  	Numerical indicator of which binary format version in use (current = 1)
+-fit #:     	Fit waveforms to find real detector events above threshold #
+-trap #:    	Filter waveforms for events using linear trapezoid
+-decay #:   	Set linear trap decay constant #
+-shaping #: 	Set linear trap shaping time #
+-top #:     	Set linear trap flat top length #
+-coll #:    	(In development) Collect detector events into coincidences within a window of # samples
+-ave #:     	Build an average pulse shape from processed events above threshold #
+-cal #:     	Perform an 'automatic' calibration #
+-shapescan #:	Perform trap filter shaping scan on specific lines sources #
 ```
 
 See ExampleUsage.sh and scripts/Example.C
@@ -69,3 +70,10 @@ Manages processing/fitting/filtering of waveforms.
 
 Stores/sorts list of triggers in an event waveform.  Somewhat deprecated, useful in abandoned raw data format with multiple channel waveforms per raw event.
 
+#### SiCalibrator
+
+Calibrates detector using known sources
+
+##### CalibSource
+
+Contains source line definitions

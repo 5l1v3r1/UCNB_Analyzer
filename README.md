@@ -18,10 +18,13 @@ Directions
 To build the code, simple run
 
 ```
+$ make clean
 $ make
 ```
 
 from the top directory of the distribution.  The executables are run from this directory.  Header files are in the inc/ directory and source code is in the src/ directory.  You can run ROOT scripts within the ROOT framework from the top directory.  An example script is included in scripts/ and a .rootlogon.C file is included in the top directory.
+
+I haven't debugged all the dependency failures from switching commits, so it's safest to run make clean first.
 
 Acknowledgements
 ----------------
@@ -30,4 +33,4 @@ UCNB_Analyzer is based on work supported by the U.S. Department of Energy, Offic
 
 Copyright and license
 ---------------------
-Copyright 2016 UT-Battelle, LLC.  See LICENSE.md for details.
+Copyright 2016 UT-Battelle, LLC.  See LICENSE.md for details.  Based on UCNB_Analyzer v1.0, copyright 2016 Los Alamos National Security, LLC.
