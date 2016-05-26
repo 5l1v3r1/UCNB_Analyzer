@@ -34,7 +34,6 @@ private:
   int date_len, comment_len;
   char date[100];
   char comment[500];
-  bool readheader;
 public:
 	NIFeb2015BinFile();
 	NIFeb2015BinFile(std::string path, std::string name);

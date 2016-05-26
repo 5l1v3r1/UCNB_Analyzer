@@ -32,6 +32,7 @@ protected:
   std::ifstream fFileStream;
   std::string mypath;
   bool pathset;
+  bool readheader;
 public:
 	struct BinEv_t{
 		virtual ~BinEv_t(){}

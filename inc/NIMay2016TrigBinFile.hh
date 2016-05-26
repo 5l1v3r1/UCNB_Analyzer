@@ -28,7 +28,6 @@ public:
   unsigned long long int starttimestamp;
 private:
   bool ReadHeader();
-  bool readheader;
 public: 
 	NIMay2016TrigBinFile();
 	NIMay2016TrigBinFile(std::string path, std::string name);

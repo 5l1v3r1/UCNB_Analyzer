@@ -43,6 +43,22 @@ bool NIJune2015BinFile::Open(int filenum, int rionum){
 }
 
 /*************************************************************************/
+//                             ReadHeader
+/*************************************************************************/
+bool NIJune2015BinFile::ReadHeader() {
+  if (!IsOpen()) 
+    return false;
+  char dummy = '0';
+  int i = 0;
+  while (dummy != 'M' && GetPosition()<25) {
+	fFileStream.read(&dummy,1);
+  }
+  if (GetPosition()==25)
+	Reset();
+  readheader = true;
+}
+
+/*************************************************************************/
 //                             ReadEvent
 /*************************************************************************/
 bool NIJune2015BinFile::ReadNextEvent(BinEv_t& NI_event) {
@@ -54,6 +70,8 @@ bool NIJune2015BinFile::ReadNextEvent(BinEv_t& NI_event) {
 
   if (!IsOpen())
     return false;
+  if (!readheader)
+    ReadHeader();
   if (!CheckLength())
     return false;
 

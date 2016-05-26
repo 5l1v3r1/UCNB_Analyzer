@@ -27,6 +27,8 @@ public:
     unsigned long long int timestamp;
     vector<short> wave;
   };
+private:
+  bool ReadHeader();
 public: 
 	NIJune2015BinFile();
 	NIJune2015BinFile(std::string path, std::string name);

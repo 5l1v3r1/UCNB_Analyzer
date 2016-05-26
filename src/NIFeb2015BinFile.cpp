@@ -14,16 +14,13 @@
 //                           Constructors
 /*************************************************************************/
 NIFeb2015BinFile::NIFeb2015BinFile() {
-  readheader = false;
 }
 
 NIFeb2015BinFile::NIFeb2015BinFile(std::string path, std::string name) {
-  readheader = false;
   Open(path,name);
 }
 
 NIFeb2015BinFile::NIFeb2015BinFile(std::string filename) {
-  readheader = false;
   Open(filename);
 }
 

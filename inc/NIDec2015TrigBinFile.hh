@@ -27,7 +27,6 @@ public:
   };
 private:
   bool ReadHeader();
-  bool readheader;
 public: 
 	NIDec2015TrigBinFile();
 	NIDec2015TrigBinFile(std::string path, std::string name);

@@ -16,17 +16,20 @@
 BinFile::BinFile() {
   mypath = "";
   pathset = false;
+  readheader = false;
 }
 
 BinFile::BinFile(std::string path, std::string name) {
   mypath = "";
   pathset = false;
+  readheader = false;
   Open(path,name);
 }
 
 BinFile::BinFile(std::string filename) {
   mypath = "";
   pathset = false;
+  readheader = false;
   Open(filename);
 }
 
@@ -48,6 +51,7 @@ bool BinFile::Open(const char* path, const char* name) {
 }
 
 bool BinFile::Open(std::string path, std::string name) {
+  readheader = false;
   std::string filename = path;
   filename.append("/");
   filename.append(name);
@@ -96,6 +100,7 @@ bool BinFile::Open(std::string filename) {
 //                               Close
 /*************************************************************************/
 void BinFile::Close() {
+  readheader = false;
   if (fFileStream.is_open()) {
     fFileName = "";
     fFilePath = "";
