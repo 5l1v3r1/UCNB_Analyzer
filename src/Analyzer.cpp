@@ -63,7 +63,7 @@ int main (int argc, char *argv[]) {
   using std::cout;
   using std::endl;
 
-  cout << "Welcome to UCNB_Analyzer 1.0.0" << endl;
+  cout << "Welcome to UCNB_Analyzer v1.2.0" << endl;
 
   bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
   bool fileok = false;

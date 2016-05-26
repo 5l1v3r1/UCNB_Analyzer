@@ -52,11 +52,15 @@ Handles file with TTree of waveforms.
 
 ##### TrigTreeFile
 
-Handles file with TTree of events found from pulse fitting.
+Handles file with TTree of events from DAQ .trig files.
 
 ##### TrapTreeFile
 
 Handles file with TTree of events found from trapezoidal filtering.
+
+##### FitTreeFile
+
+Handles file with TTree of events found from pulse fitting.
 
 ##### EventTreeFile
 
