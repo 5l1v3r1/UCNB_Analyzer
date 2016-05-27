@@ -17,6 +17,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "NIMay2016BinFile.hh"
 #include "NIJune2015BinFile.hh"
 #include "NIFeb2015BinFile.hh"
 #include "TreeFile.hh"
@@ -44,6 +45,7 @@ public:
   bool FillEvent(vector<BinFile::BinEv_t*> &BinEv); 
   bool FillFebEvent(vector<NIFeb2015BinFile::FebBinEv_t*> &FebBinEv);
   bool FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBinEv);
+  bool FillMayEvent(vector<NIMay2016BinFile::MayBinEv_t*> &MayBinEv);
   void FillRawEvent(RawEv_t& event);
   using TreeFile::Sort;
   void Sort(TreeFile& origfile);

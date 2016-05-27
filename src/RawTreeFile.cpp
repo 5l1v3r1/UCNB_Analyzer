@@ -67,16 +67,21 @@ bool RawTreeFile::FillEvent(vector<BinFile::BinEv_t*> &BinEv) {
 	
 	vector<NIFeb2015BinFile::FebBinEv_t*> FebBinEv;
 	vector<NIJune2015BinFile::JuneBinEv_t*> JuneBinEv;
+	vector<NIMay2016BinFile::MayBinEv_t*> MayBinEv;
 	vector<BinFile::BinEv_t*>::iterator iter;
 	for (iter = BinEv.begin(); iter != BinEv.end(); ++iter) {
 		FebBinEv.push_back(dynamic_cast<NIFeb2015BinFile::FebBinEv_t*>(*iter));
 		JuneBinEv.push_back(dynamic_cast<NIJune2015BinFile::JuneBinEv_t*>(*iter));
+		MayBinEv.push_back(dynamic_cast<NIMay2016BinFile::MayBinEv_t*>(*iter));
 	}
 	if (FebBinEv[0]) {
 		return FillFebEvent(FebBinEv);
 	}
 	else if (JuneBinEv[0]) {
 		return FillJuneEvent(JuneBinEv);		
+	}
+	else if (MayBinEv[0]) {
+		return FillMayEvent(MayBinEv);		
 	}
 	else 
 		return false;
@@ -125,6 +130,35 @@ bool RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBin
 			return false;
 		}
 		std::copy(JuneBinEv[rio]->wave.begin(),JuneBinEv[rio]->wave.begin()+NI_event.length,NI_event.wave);
+		for (int i=0;i<NI_event.length;i++) { //data fix
+			if (NI_event.wave[i] > 8192) {
+			NI_event.wave[i] -= 16384;
+			}
+		}
+		if (NI_event.result == 1 && NI_event.eventID == 0)
+			FillTree();
+		else {
+			cout << NI_event.result << ", " << NI_event.eventID << "              " << endl << endl;
+		}
+	}
+	return true;
+}
+
+bool RawTreeFile::FillMayEvent(vector<NIMay2016BinFile::MayBinEv_t*> &MayBinEv){
+	for (int rio=0;rio<MayBinEv.size();rio++) {
+		NI_event.timestamp = MayBinEv[rio]->timestamp;
+		NI_event.board = MayBinEv[rio]->board;
+		NI_event.channel = MayBinEv[rio]->channel;
+		NI_event.ch = NI_event.board*MAXCH + NI_event.channel;
+		NI_event.eventID = MayBinEv[rio]->eventID;
+		NI_event.result = MayBinEv[rio]->result;
+		NI_event.length = MayBinEv[rio]->wave.size();
+		if (NI_event.length > MAXWAVE) {
+			NI_event.length = MAXWAVE;
+			cout << "Error, wavelength greater than defined MAXWAVE: " << MayBinEv[rio]->wave.size() << " > " << MAXWAVE << endl;
+			return false;
+		}
+		std::copy(MayBinEv[rio]->wave.begin(),MayBinEv[rio]->wave.begin()+NI_event.length,NI_event.wave);
 		for (int i=0;i<NI_event.length;i++) { //data fix
 			if (NI_event.wave[i] > 8192) {
 			NI_event.wave[i] -= 16384;

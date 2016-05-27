@@ -19,6 +19,7 @@
 #include "NIMay2016TrigBinFile.hh"
 #include "NIFeb2015BinFile.hh"
 #include "NIJune2015BinFile.hh"
+#include "NIMay2016BinFile.hh"
 #include "RawTreeFile.hh"
 #include "TrigTreeFile.hh"
 #include "FitTreeFile.hh"
@@ -63,7 +64,7 @@ int main (int argc, char *argv[]) {
   using std::cout;
   using std::endl;
 
-  cout << "Welcome to UCNB_Analyzer v1.2.0" << endl;
+  cout << "Welcome to UCNB_Analyzer v1.2.1" << endl;
 
   bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
   bool fileok = false;
@@ -365,9 +366,13 @@ void DoRaw(int filenum) {
 			InputEvent[rio] = new NIFeb2015BinFile::FebBinEv_t;
 			InputFile[rio] = new NIFeb2015BinFile();
 		}
-		else if (dataformat == 1 || dataformat == 2) {
+		else if (dataformat == 1) {
 			InputEvent[rio] = new NIJune2015BinFile::JuneBinEv_t;
 			InputFile[rio] = new NIJune2015BinFile();
+		}
+		else if (dataformat == 2) {
+			InputEvent[rio] = new NIMay2016BinFile::MayBinEv_t;
+			InputFile[rio] = new NIMay2016BinFile();
 		}
 		InputFile[rio]->SetPath(path);
 		InputFile[rio]->Open(filenum, rio);
