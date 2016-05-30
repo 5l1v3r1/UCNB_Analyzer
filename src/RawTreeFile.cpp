@@ -25,6 +25,19 @@ RawTreeFile::~RawTreeFile() {
 }
 
 /*************************************************************************/
+//                                Open   
+/*************************************************************************/
+bool RawTreeFile::Open(int filenum, int which){
+	char tempstr[255];
+	sprintf(tempstr,"run%05d_%d.root",filenum,which);
+	std::string filename = tempstr;
+	if (pathset)
+		return Open(mypath,filename);
+	else
+		return Open(filename);
+}
+
+/*************************************************************************/
 //                             SetBranches 
 /*************************************************************************/
 void RawTreeFile::SetBranches() {
@@ -137,8 +150,8 @@ bool RawTreeFile::FillJuneEvent(vector<NIJune2015BinFile::JuneBinEv_t*> &JuneBin
 		}
 		if (NI_event.result == 1 && NI_event.eventID == 0)
 			FillTree();
-		else {
-			cout << NI_event.result << ", " << NI_event.eventID << "              " << endl << endl;
+		else if (NI_event.result == 0) { // DAQ buffer corrupted
+			return false;
 		}
 	}
 	return true;
@@ -166,8 +179,8 @@ bool RawTreeFile::FillMayEvent(vector<NIMay2016BinFile::MayBinEv_t*> &MayBinEv){
 		}
 		if (NI_event.result == 1 && NI_event.eventID == 0)
 			FillTree();
-		else {
-			cout << NI_event.result << ", " << NI_event.eventID << "              " << endl << endl;
+		else if (NI_event.result == 0) { // DAQ buffer corrupted
+			return false;
 		}
 	}
 	return true;

@@ -49,6 +49,8 @@ public:
   void FillRawEvent(RawEv_t& event);
   using TreeFile::Sort;
   void Sort(TreeFile& origfile);
+  using TreeFile::Open;
+  bool Open(int filenum, int which);
 private:
   void SetNameStr() {sprintf(namestr,"run%%05d.root");};
   void SetBranches();

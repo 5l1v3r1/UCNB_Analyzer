@@ -15,12 +15,14 @@
 /*************************************************************************/
 BinFile::BinFile() {
   mypath = "";
+  fileno = -1;
   pathset = false;
   readheader = false;
 }
 
 BinFile::BinFile(std::string path, std::string name) {
   mypath = "";
+  fileno = -1;
   pathset = false;
   readheader = false;
   Open(path,name);
@@ -28,6 +30,7 @@ BinFile::BinFile(std::string path, std::string name) {
 
 BinFile::BinFile(std::string filename) {
   mypath = "";
+  fileno = -1;
   pathset = false;
   readheader = false;
   Open(filename);
@@ -62,13 +65,15 @@ bool BinFile::Open(std::string path, std::string name) {
     fFileStream.seekg(0,fFileStream.end);
     fFileLength = fFileStream.tellg();
     fFileStream.seekg(0,fFileStream.beg);
+	return true;
   }
   else {
     fFilePath = "";
     fFileName = "";
     fFileLength = 0;
+	fileno = -1;
+	return false;
   }
-  return fFileStream.is_open();
 }
 
 bool BinFile::Open(std::string filename) {
@@ -101,6 +106,7 @@ bool BinFile::Open(std::string filename) {
 /*************************************************************************/
 void BinFile::Close() {
   readheader = false;
+  fileno = -1;
   if (fFileStream.is_open()) {
     fFileName = "";
     fFilePath = "";

@@ -27,9 +27,9 @@ public:
     unsigned long long int timestamp;
     vector<short> wave;
   };
-  unsigned long long int starttimestamp;
+	unsigned long long int starttimestamp;
 private:
-  bool ReadHeader();
+	int filecount;
 public: 
 	NIMay2016BinFile();
 	NIMay2016BinFile(std::string path, std::string name);
@@ -38,6 +38,9 @@ public:
 	using BinFile::Open;
 	bool Open(int filenum, int rionum = -1);
 	bool ReadNextEvent(BinEv_t& NI_event);
+private:
+	bool ReadHeader();
+	bool OpenNext();
 
 };
 

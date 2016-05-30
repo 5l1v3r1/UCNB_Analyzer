@@ -18,7 +18,7 @@
 using std::cout;
 using std::endl;
 
-#define MAXWAVE 6000
+#define MAXWAVE 65536
 #define MAXCH 8
 #define MAXRIO 16
 
@@ -31,6 +31,7 @@ private:
 protected:
   std::ifstream fFileStream;
   std::string mypath;
+  int fileno;
   bool pathset;
   bool readheader;
 public:

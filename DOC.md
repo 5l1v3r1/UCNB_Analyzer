@@ -70,10 +70,6 @@ Handles file with TTree of events from coincident channels.
 
 Manages processing/fitting/filtering of waveforms.
 
-#### TriggerList
-
-Stores/sorts list of triggers in an event waveform.  Somewhat deprecated, useful in abandoned raw data format with multiple channel waveforms per raw event.
-
 #### SiCalibrator
 
 Calibrates detector using known sources

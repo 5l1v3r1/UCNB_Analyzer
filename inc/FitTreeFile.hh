@@ -32,11 +32,8 @@ private:
     Double_t shaping;
     Double_t integ;
     Double_t chi2;
-    Double_t trapE;
-    Double_t trapT;
-    Int_t rio;
-    Int_t rio_ch;
-    Int_t chan;
+    Int_t ch;
+	Int_t wavefile;
     Int_t waveev;
   }; 
 public:

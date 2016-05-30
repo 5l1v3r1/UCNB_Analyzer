@@ -26,7 +26,6 @@
 #include "TrapTreeFile.hh"
 #include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
-#include "TriggerList.hh"
 #include "SiCalibrator.hh"
 
 #include "TApplication.h"
@@ -64,7 +63,7 @@ int main (int argc, char *argv[]) {
   using std::cout;
   using std::endl;
 
-  cout << "Welcome to UCNB_Analyzer v1.2.1" << endl;
+  cout << "Welcome to UCNB_Analyzer v1.2.2" << endl;
 
   bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
   bool fileok = false;
@@ -345,7 +344,6 @@ void Usage(std::string program) {
   cout << "-raw to convert .bin files to .root" << endl;
   cout << "      -format <format (0=feb,1=june,2=may)> to set data format (default 2)" << endl;
   cout << "-trig to convert .trig files to .root" << endl;
-  cout << "-sort to time-order .root file" << endl;
   cout << "-trap <threshold> to filter waveforms for events using linear trapezoid" << endl;
   cout << "      -decay <smp> to set linear trap decay constant" << endl;
   cout << "      -shaping <smp> to set linear trap shaping time" << endl;
@@ -387,7 +385,6 @@ void DoRaw(int filenum) {
 	cout << "Processing raw file " << filenum << endl;
 	RawTreeFile RootFile;
 	RootFile.SetPath(path);
-	RootFile.SetTmp();
 	if (!RootFile.Create(filenum)) {
 		cout << "Input file not open!" << endl;
 		for (int rio=0;rio<nfiles;rio++) {
@@ -398,34 +395,25 @@ void DoRaw(int filenum) {
 		return;
 	}
 	bool goodevent = true;
+	int cnt = 1000; // Event buffer not flushed at beginning of run
 	while (InputFile[0]->ReadNextEvent(*InputEvent[0]) && goodevent) {
 		float ev = InputFile[0]->GetPosition();
 		float nentries = InputFile[0]->GetLength();
 		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
 		for (int rio=1;rio<nfiles;rio++)
 			InputFile[rio]->ReadNextEvent(*InputEvent[rio]);
-		goodevent = RootFile.FillEvent(InputEvent);
+		if (cnt > 0)
+			cnt--;
+		else
+			goodevent = RootFile.FillEvent(InputEvent);
 	}
 	for (int rio=0;rio<nfiles;rio++) {
 		InputFile[rio]->Close();  
 		delete InputFile[rio];
 		delete InputEvent[rio];  
 	}
-	//-----Sort by timestamp
-	RawTreeFile NewFile;
-	NewFile.SetPath(path);
-	if (!NewFile.Create(filenum)) {
-		cout << "Output file not open!" << endl;
-		return;
-	}
-	NewFile.Sort(RootFile);
-	NewFile.Write();
-	NewFile.Close();
-	std::string tmpname = path;
-	tmpname.append("/");
-	tmpname.append(RootFile.GetName());
+	RootFile.Write();
 	RootFile.Close();
-	remove(tmpname.c_str());
 }
 
 void DoTrig(int filenum) {
@@ -508,37 +496,37 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	}
 	WaveformAnalyzer WA;
 	WA.SetTrapPars(decay,shaping,top);
-	TriggerList TL;
 	cout << "Applying trap filter (decay/rise/top = " << decay <<"/" << shaping << "/" << top << ") to file " << filenum << endl;
-	int nentries = RootFile.GetNumEvents();
-	//-----Find triggers
-	for (int ev=0;ev<nentries;ev++) {
-		printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
-		RootFile.GetEvent(ev);
-		WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
-		vector<trigger_t> triglist; 
-		WA.GetTriggers(thresh,triglist);
-		TL.Reset();
-		TL.AddTriggers(triglist);
-		trigger_t maxtrig;
-		maxtrig.TrapE = 0; maxtrig.AveTrapE = 0; maxtrig.MidTrapE = 0; 
-		maxtrig.TrapT = 0; 
-		maxtrig.up = 0; maxtrig.down = 0; maxtrig.ch = 0;
-		maxtrig.Flat0 = 0; maxtrig.Flat1 = 0; 
-		if (TL.GetMaxTrigger(maxtrig)) {
-			TrapFile.Trap_event.MaxE = maxtrig.TrapE;
-			TrapFile.Trap_event.AveE = maxtrig.AveTrapE;
-			TrapFile.Trap_event.MidE = maxtrig.MidTrapE;
-			TrapFile.Trap_event.t = maxtrig.TrapT + (double)RootFile.NI_event.timestamp;
-			TrapFile.Trap_event.up = maxtrig.up;
-			TrapFile.Trap_event.down = maxtrig.down;
-			TrapFile.Trap_event.Flat0 = maxtrig.Flat0;
-			TrapFile.Trap_event.Flat1 = maxtrig.Flat1;
-		}
-		TrapFile.Trap_event.ch = RootFile.NI_event.ch;
-		TrapFile.FillTree();
-	}//ev < NumEvents
-	RootFile.Close();	
+	int filecount = 0;
+	do {
+		int nentries = RootFile.GetNumEvents();
+		//-----Find triggers
+		for (int ev=0;ev<nentries;ev++) {
+			printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
+			RootFile.GetEvent(ev);
+			WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
+			vector<trigger_t> triglist; 
+			//maybe add veto for events too early in file
+			WA.GetTriggers(thresh,triglist);
+			for (int t=0;t<triglist.size();t++) {
+				TrapFile.Trap_event.MaxE = triglist[t].TrapE;
+				TrapFile.Trap_event.AveE = triglist[t].AveTrapE;
+				TrapFile.Trap_event.MidE = triglist[t].MidTrapE;
+				TrapFile.Trap_event.t = triglist[t].TrapT + (double)RootFile.NI_event.	timestamp;
+				TrapFile.Trap_event.Flat0 = triglist[t].Flat0;
+				TrapFile.Trap_event.Flat1 = triglist[t].Flat1;
+				TrapFile.Trap_event.up = triglist[t].up;
+				TrapFile.Trap_event.down = triglist[t].down;
+				TrapFile.Trap_event.ch = RootFile.NI_event.ch;
+				TrapFile.Trap_event.wavefile = filecount;
+				TrapFile.Trap_event.waveev = ev;
+				TrapFile.FillTree();
+			}
+		}//ev < NumEvents
+		RootFile.Close();
+		if (!RootFile.Open(filenum,++filecount))
+			filecount = -1;
+	} while (filecount != -1);
 	//-----Sort by timestamp
 	TrapTreeFile NewFile;
 	NewFile.SetPath(path);
@@ -572,51 +560,33 @@ void DoFit(int filenum, int thresh) {
 		return;
 	}
 	WaveformAnalyzer WA;
-	cout << "IDing triggers in file " << filenum << endl;
-	//-----Find and order triggers
-	TriggerList TL;
-	int nentries = RootFile.GetNumEvents();
-	int ev = 0;
-	int startev = 0;
-	while (ev<nentries) {
-		printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
-		TL.Reset();
-		ULong64_t timediff, prevtime;
-		RootFile.GetEvent(ev);
-		startev = ev;
-		do {
+	cout << "Fitting waveforms in file " << filenum << endl;
+	int filecount = 0;
+	do {
+		int nentries = RootFile.GetNumEvents();
+		//-----Find triggers
+		for (int ev=0;ev<nentries;ev++) {
+			printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
+			RootFile.GetEvent(ev);
 			WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
 			vector<trigger_t> triglist; 
-			//WA.GetTriggers(thresh,triglist);
 			WA.FitWave(thresh,triglist);
-			for (int i=0;i<triglist.size();i++)
-				triglist[i].ch = RootFile.NI_event.ch;
-			TL.AddTriggers(triglist);
-			prevtime = RootFile.NI_event.timestamp;
-			if (++ev < nentries) {
-				RootFile.GetEvent(ev);
+			for (int t=0;t<triglist.size();t++) {
+				FitFile.Fit_event.E = triglist[t].E;
+				FitFile.Fit_event.t = triglist[t].T + (double)RootFile.NI_event.timestamp;
+				FitFile.Fit_event.shaping = triglist[t].Shaping;
+				FitFile.Fit_event.integ = triglist[t].Integration;
+				FitFile.Fit_event.chi2 = triglist[t].Chi2;
+				FitFile.Fit_event.ch = RootFile.NI_event.ch;
+				FitFile.Fit_event.wavefile= filecount;
+				FitFile.Fit_event.waveev = ev;
+				FitFile.FillTree();
 			}
-			timediff = RootFile.NI_event.timestamp - prevtime;
-		}while (timediff < RootFile.NI_event.length  && ev < nentries);
-		TL.OrderTriggers(); //within channel
-		//-----Write to tree
-		RootFile.GetEvent(ev-1);
-		trigger_t nexttrig;
-		while (TL.GetTrigger(nexttrig)) {
-			FitFile.Fit_event.E = nexttrig.E;
-			FitFile.Fit_event.t = nexttrig.T + (double)RootFile.NI_event.timestamp;
-			FitFile.Fit_event.shaping = nexttrig.Shaping;
-			FitFile.Fit_event.integ = nexttrig.Integration;
-			FitFile.Fit_event.chi2 = nexttrig.Chi2;
-			FitFile.Fit_event.trapE = nexttrig.TrapE;
-			FitFile.Fit_event.trapT = nexttrig.TrapT;
-			FitFile.Fit_event.rio = RootFile.NI_event.board;
-			FitFile.Fit_event.rio_ch = RootFile.NI_event.channel;
-			FitFile.Fit_event.chan = RootFile.NI_event.ch;
-			FitFile.Fit_event.waveev = startev;
-			FitFile.FillTree();
-		}
-	}//ev < NumEvents
+		}//ev < NumEvents
+		RootFile.Close();	
+		if (!RootFile.Open(filenum,++filecount))
+			filecount = -1;
+	} while (filecount != -1);
 	FitFile.Write();
 	cout << "Done" << endl;
 	FitFile.Close();

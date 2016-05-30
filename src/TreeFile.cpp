@@ -167,6 +167,7 @@ bool TreeFile::Create(std::string path, std::string name) {
 	}
 	myname = name;
     MakeBranches();
+	RootTree->SetMaxTreeSize(1000000000); // 1 GB
 	createmode = true;
 	return true;
 }
@@ -227,6 +228,7 @@ void TreeFile::FillTree(){
   }
   RootFile->cd();
   RootTree->Fill();
+  RootFile = RootTree->GetCurrentFile();
 }
 
 /*************************************************************************/

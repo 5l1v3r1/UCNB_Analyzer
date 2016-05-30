@@ -32,12 +32,9 @@ void FitTreeFile::SetBranches() {
   RootTree->SetBranchAddress("t",&Fit_event.t);
   RootTree->SetBranchAddress("shaping",&Fit_event.shaping);
   RootTree->SetBranchAddress("integ",&Fit_event.integ);
-  RootTree->SetBranchAddress("trapE",&Fit_event.trapE);
-  RootTree->SetBranchAddress("trapT",&Fit_event.trapT);
   RootTree->SetBranchAddress("chi2",&Fit_event.chi2);
-  RootTree->SetBranchAddress("rio",&Fit_event.rio);
-  RootTree->SetBranchAddress("rio_ch",&Fit_event.rio_ch);
-  RootTree->SetBranchAddress("chan",&Fit_event.chan);
+  RootTree->SetBranchAddress("ch",&Fit_event.ch);
+  RootTree->SetBranchAddress("wavefile",&Fit_event.wavefile);
   RootTree->SetBranchAddress("waveev",&Fit_event.waveev);
 
   RootTree->GetEntry(0);
@@ -55,11 +52,8 @@ void FitTreeFile::MakeBranches() {
   RootTree->Branch("shaping",&Fit_event.shaping,"shaping/D");
   RootTree->Branch("integ",&Fit_event.integ,"integ/D");
   RootTree->Branch("chi2",&Fit_event.chi2,"chi2/D");
-  RootTree->Branch("trapE",&Fit_event.trapE,"trapE/D");
-  RootTree->Branch("trapT",&Fit_event.trapT,"trapT/D");
-  RootTree->Branch("rio",&Fit_event.rio,"rio/I");
-  RootTree->Branch("rio_ch",&Fit_event.rio_ch,"rio_ch/I");
-  RootTree->Branch("chan",&Fit_event.chan,"chan/I");
+  RootTree->Branch("ch",&Fit_event.ch,"ch/I");
+  RootTree->Branch("wavefile",&Fit_event.wavefile,"wavefile/I");
   RootTree->Branch("waveev",&Fit_event.waveev,"waveev/I");
 }
 

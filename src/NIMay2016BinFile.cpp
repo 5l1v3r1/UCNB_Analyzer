@@ -39,6 +39,17 @@ bool NIMay2016BinFile::Open(int filenum, int rionum){
 	char tempstr[255];
 	sprintf(tempstr,"Run_%d_0.bin",filenum);
 	std::string filename = tempstr;
+	fileno = filenum;
+	filecount = 0;
+    return Open(filename);
+}
+
+bool NIMay2016BinFile::OpenNext(){
+	if (fileno == -1) return false;
+	filecount++;
+	char tempstr[255];
+	sprintf(tempstr,"Run_%d_%d.bin",fileno,filecount);
+	std::string filename = tempstr;
     return Open(filename);
 }
 
@@ -66,8 +77,12 @@ bool NIMay2016BinFile::ReadNextEvent(BinEv_t& NI_event) {
     return false;
   if (!readheader)
     ReadHeader();
-  if (!CheckLength())
-    return false;
+  if (!CheckLength()) {
+	  if (OpenNext())
+		  ReadHeader();
+	  else
+		return false;
+  }
 
   May_event->result = 0;
   fFileStream.read(reinterpret_cast<char *>(&(May_event->result)),1);

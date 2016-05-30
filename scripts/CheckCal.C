@@ -330,38 +330,52 @@ void PrintAlltheThings(int ch) {
 	double ustos = 1.e6;
 	c->SetLogx();
 	c->SetLogy();
+		TLegend* leg = new TLegend(0.5,0.5,0.8,0.8);
 		PlotScanResults(ch,"Q");
 		TF1* foo = (TF1*)gROOT->FindObject("fitsnx");
+		leg->AddEntry(foo,"Sn Xray (24 keV)","l");
 		cout << "Ch" << ch << " Snx ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
 		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
 		cout << nA <<  " nA" << endl;
 		TF1* foo = (TF1*)gROOT->FindObject("fitcex");
+		leg->AddEntry(foo,"Ce Xray (33 keV)","l");
 		cout << "Ch" << ch << " Cex ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
 		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
 		cout << nA <<  " nA" << endl;
 		TF1* foo = (TF1*)gROOT->FindObject("fitceb");
+		leg->AddEntry(foo,"Ce beta (127 keV)","l");
 		cout << "Ch" << ch << " Ceb ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
 		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
 		cout << nA <<  " nA" << endl;
 		TF1* foo = (TF1*)gROOT->FindObject("fitsnb");
+		leg->AddEntry(foo,"Sn beta (364 keV)","l");
 		cout << "Ch" << ch << " Snb ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
 		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
 		cout << nA <<  " nA" << endl;
 		TF1* foo = (TF1*)gROOT->FindObject("fitbib");
+		leg->AddEntry(foo,"Bi beta (482 keV)","l");
 		cout << "Ch" << ch << " Bib ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
 		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
 		cout << nA <<  " nA" << endl;
 		cout <<"*****************************" << endl;
+		leg->Draw("same");
+		double Kb = 1.38e-23; // m^2 kg K /s^2
+		double T = 180.; // K
+		double R = 1.e9; // Ohm
+		double IL = 2e-9; // A
+		q = 1.602e-19; // C
+		cout << "feedback resistor noise " << 2.*Kb*T/R << endl;
+		cout << "leakage current noise " << q*IL << endl;
 }
 
 void PlotScanResults(int ch, char* fitopt) {

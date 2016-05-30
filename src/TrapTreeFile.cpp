@@ -36,6 +36,8 @@ void TrapTreeFile::SetBranches() {
   RootTree->SetBranchAddress("up",&Trap_event.up);
   RootTree->SetBranchAddress("down",&Trap_event.down);
   RootTree->SetBranchAddress("ch",&Trap_event.ch);
+  RootTree->SetBranchAddress("wavefile",&Trap_event.wavefile);
+  RootTree->SetBranchAddress("waveev",&Trap_event.waveev);
 
   RootTree->GetEntry(0);
 }
@@ -69,6 +71,8 @@ void TrapTreeFile::MakeBranches() {
   RootTree->Branch("up",&Trap_event.up,"up/I");
   RootTree->Branch("down",&Trap_event.down,"down/I");
   RootTree->Branch("ch",&Trap_event.ch,"ch/I");
+  RootTree->Branch("wavefile",&Trap_event.wavefile,"wavefile/I");
+  RootTree->Branch("waveev",&Trap_event.waveev,"waveev/I");
 }
 
 /*************************************************************************/

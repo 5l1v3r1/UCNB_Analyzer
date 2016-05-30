@@ -13,7 +13,6 @@
 #include <iostream>
 #include <string>
 
-//#include <TROOT.h>
 #include "TSystem.h"
 #include "TFile.h"
 #include "TTree.h"
@@ -37,6 +36,8 @@ private:
     Int_t up;
     Int_t down;
     Int_t ch;
+	Int_t wavefile;
+    Int_t waveev;
   };
   Int_t decay;
   Int_t shaping;
