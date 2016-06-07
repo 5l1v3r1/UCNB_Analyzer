@@ -69,11 +69,11 @@ int main (int argc, char *argv[]) {
   bool fileok = false;
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1, scansrc=-1;
   dataformat = 2;
-  path = "./";
+  path = "";
 
   //-----Parse parameters
   while (i+1 <= argc) {
-    if (strcmp(argv[i],"-p")==0) {
+    if ((strcmp(argv[i],"-p")==0)||(strcmp(argv[i],"-path")==0)) {
 		i++;
 		if (i+1 > argc) {
 			cout << "Missing argument for -p" << endl;
@@ -372,7 +372,9 @@ void DoRaw(int filenum) {
 			InputEvent[rio] = new NIMay2016BinFile::MayBinEv_t;
 			InputFile[rio] = new NIMay2016BinFile();
 		}
-		InputFile[rio]->SetPath(path);
+		if (path.compare("") != 0) { 
+			InputFile[rio]->SetPath(path);
+		}
 		InputFile[rio]->Open(filenum, rio);
 		if (!InputFile[rio]->IsOpen()) {
 			cout << "Input file not open!" << endl;
@@ -384,7 +386,9 @@ void DoRaw(int filenum) {
 	//-----Store in ROOT file
 	cout << "Processing raw file " << filenum << endl;
 	RawTreeFile RootFile;
-	RootFile.SetPath(path);
+	if (path.compare("") != 0) { 
+		RootFile.SetPath(path);
+	}
 	if (!RootFile.Create(filenum)) {
 		cout << "Input file not open!" << endl;
 		for (int rio=0;rio<nfiles;rio++) {
@@ -460,7 +464,9 @@ void DoTrig(int filenum) {
 	delete InputFile;
 	//-----Sort by timestamp
 	TrigTreeFile NewFile;
-	NewFile.SetPath(path);
+	if (path.compare("") != 0) { 
+		NewFile.SetPath(path);
+	}
 	if (!NewFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
 		return;
@@ -529,7 +535,9 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	} while (filecount != -1);
 	//-----Sort by timestamp
 	TrapTreeFile NewFile;
-	NewFile.SetPath(path);
+	if (path.compare("") != 0) { 
+		NewFile.SetPath(path);
+	}
 	if (!NewFile.Create(filenum,decay,shaping,top)) {
 		cout << "Output file not open!" << endl;
 		return;
@@ -547,14 +555,17 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 void DoFit(int filenum, int thresh) {	
 	//-----Open input/output files
 	RawTreeFile RootFile;
-	RootFile.SetPath(path);
+	if (path.compare("") != 0) { 
+		RootFile.SetPath(path);
+	}
 	if (!RootFile.Open(filenum)) {
 		cout << "Input file not open!" << endl;
 		return;
 	}
 	FitTreeFile FitFile;
-	FitFile.SetPath(path);
-	
+	if (path.compare("") != 0) { 
+		FitFile.SetPath(path);
+	}
 	if (!FitFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
 		return;
@@ -598,13 +609,17 @@ void DoColl(int filenum, int smp) {
   cout << "Collecting single-event coincidences in file " << filenum << endl;
   //-----Open input/output files
   TrigTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
-  InputFile.SetPath(path);
+  if (path.compare("") != 0) { 
+	InputFile.SetPath(path);
+  }
   if (!InputFile.Open(filenum)) {
     cout << "Input file Not Open!" << endl;
     return;
   }
   EventTreeFile EventFile;
-  EventFile.SetPath(path);
+  if (path.compare("") != 0) { 
+	EventFile.SetPath(path);
+  }
   if (!EventFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
 		return;
@@ -684,7 +699,9 @@ void DoAve(int filenum, int thresh) {
 
 void DoCalib(int thresh, int decay, int shaping, int top) {
 	SiCalibrator calib(thresh, decay, shaping, top);
-	calib.SetPath(path);
+	if (path.compare("") != 0) { 
+		calib.SetPath(path);
+	}
 	//-----To do: move detector channel mapping to new object
 	//east = 0, west = 1
 	int det[MAXPIX];
@@ -721,7 +738,9 @@ void DoCalib(int thresh, int decay, int shaping, int top) {
 	//-----Build histograms
 	cout << "Building histograms.." << endl;
 	TrapTreeFile trapfile;
-	trapfile.SetPath(path);
+	if (path.compare("") != 0) { 
+		trapfile.SetPath(path);
+	}
 	//-----To Do:  Check for exising files
 	calib.BuildHists(trapfile);
 	//calib.FindPeaks();
@@ -758,7 +777,9 @@ void DoShapeScan(int src) {
 		filename.append("ShapingScanCex.root");
 	TFile* myfile = new TFile(filename.c_str(),"RECREATE");
 	SiCalibrator calib;
-	calib.SetPath(path);
+	if (path.compare("") != 0) { 
+		calib.SetPath(path);
+	}
 	TF1* fenc = new TF1("fenc",enc2,10,1000,3);
 	//-----Shaping scans
 	double sigma[num];
