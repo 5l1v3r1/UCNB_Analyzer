@@ -53,7 +53,7 @@ double enc2(double* x, double* par);
 
 std::string path;
 int dataformat; // 0 = feb15, 1 = june15, 2 = may16
-const int maxformat = 2; // only 2 formats so far
+const int maxformat = 3; // only 2 formats so far
 const bool dodraw = true;
 
 /*************************************************************************/
@@ -402,6 +402,10 @@ void DoRaw(int filenum) {
 	int cnt = 1000; // Event buffer not flushed at beginning of run
 	while (InputFile[0]->ReadNextEvent(*InputEvent[0]) && goodevent) {
 		float ev = InputFile[0]->GetPosition();
+		if (ev ==-1) {
+			cout << endl << "Warning: early file termination (check file format?)" << endl;
+			break;
+		}
 		float nentries = InputFile[0]->GetLength();
 		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
 		for (int rio=1;rio<nfiles;rio++)
@@ -457,6 +461,10 @@ void DoTrig(int filenum) {
 	while (InputFile->ReadNextEvent(*InputEvent)) {
 		float ev = InputFile->GetPosition();
 		float nentries = InputFile->GetLength();
+		if (ev ==-1) {
+			cout << endl << "Warning: early file termination (check file format?)" << endl;
+			break;
+		}
 		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
 		TrigFile.FillEvent(InputEvent);
 	}
