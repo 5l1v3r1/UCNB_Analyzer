@@ -93,7 +93,7 @@ int main (int argc, char *argv[]) {
 			return 1;
 		}
 	}
-    if (strcmp(argv[i],"-calibfile")==0) {
+    else if (strcmp(argv[i],"-calibfile")==0) {
 		i++;
 		if (i+1 > argc) {
 			cout << "Missing argument for -cailbfile" << endl;
@@ -667,11 +667,15 @@ void DoColl(int filenum, int smp, std::string calibfile) {
 	  q0[i]=0;q1[i]=1;q2[i]=0;
   }
   if (calibfile.compare("") != 0) { 
-  ifstream cal(calibfile.c_str());
-  for(int i=0; i<48; i++)
-    {
+	ifstream cal(calibfile.c_str());
+	for(int i=0; i<48; i++) {
       cal>>q2[i]>>q1[i]>>q0[i];
     }
+  }
+  else { // Quick Cal
+	for(int i=0; i<48; i++) {
+	  q0[i]=-4.;q1[i]=0.041;q2[i]=0;
+	}  
   }
   int numch = MAXCH*MAXRIO;
   double tlast = -1, Elast = -1;

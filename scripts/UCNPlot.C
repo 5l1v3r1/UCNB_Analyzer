@@ -5,6 +5,7 @@
 // Quick analysis of trig files from Jan and Feb run
 
 EventTreeFile ucnf;
+TrigTreeFile ttf;
 TString janpath = "Files/JanUCN";
 TString febpath = "Files/FebUCN";
 
@@ -176,6 +177,73 @@ bool Open(int run) {
 		ucnf.SetPath(febpath.Data());
 	return ucnf.Open(run);
 }
+bool OpenTrig(int run) {	
+	if (run <= 90)
+		ttf.SetPath(janpath.Data());
+	else
+		ttf.SetPath(febpath.Data());
+	return ttf.Open(run);
+}
+
+void TrigLoop(int mych) {
+	Setdead();
+	TH2D* Hsum = new TH2D("sum","",100,0,500,50,-500,1500);
+	TH2D* HVonUCNon = new TH2D("HVUCN","",100,0,500,50,-500,1500);
+	TH2D* HVoffUCNon = new TH2D("UCN","",100,0,500,50,-500,1500);
+	TH2D* HVonUCNoff = new TH2D("HV","",100,0,500,50,-500,1500);
+	for (int r=0;r<185;r++) {
+		if (!deadfile[r] && UCNon[r] != -1) {  if (OpenTrig(r)) {
+			cout << "Run " << r << endl;
+			int numev = ttf.GetNumEvents();
+			int StartEv = 0;
+			do {
+				ttf.GetEvent(StartEv);
+				double startt = ttf.Trig_event.t;
+				ULong64_t mask = 0;
+				ULong64_t bit = 0x1;
+				//mask += bit<<ttf.Trig_event.ch;
+				double startE = ttf.Trig_event.E;
+				if (mask & deadmask[r] == 0) {
+					int ev = StartEv + 1;
+					if (ev < numev)
+						ttf.GetEvent(ev);
+					double tdiff = (ttf.Trig_event.t - startt)*4.e-3;
+					while (tdiff < 1000 && ev < numev ) { //100 mus
+					//never called????
+						double esum = ttf.Trig_event.E;
+						cout << esum << endl;
+						mask = 0;
+						//mask += bit<<ttf.Trig_event.ch;
+						if (esum < 1500 && (mask & deadmask[r] == 0)) {
+							Hsum->Fill(tdiff,esum);
+							if (UCNon[r] && HVon[r])
+								HVonUCNon->Fill(tdiff,esum);
+							else if (UCNon[r] && !HVon[r])
+								HVoffUCNon->Fill(tdiff,esum);
+							else if (!UCNon[r] && HVon[r])
+								HVonUCNoff->Fill(tdiff,esum);
+						}
+						ev++;
+						if (ev < numev)
+							ttf.GetEvent(ev);
+						tdiff = (ttf.Trig_event.t - startt)*4.e-3;
+					}
+				}
+				StartEv++; // for now double-count
+			}while (StartEv < numev && ttf.Trig_event.t < tmax[r]);
+		}}
+	}
+	Hsum->Draw("COLZ");
+	TCanvas* c = new TCanvas();
+	c->Divide (1,3);
+	c->cd(1);
+	HVonUCNon->Draw("COLZ");
+	c->cd(2);
+	HVoffUCNon->Draw("COLZ");
+	c->cd(3);
+	HVonUCNoff->Draw("COLZ");
+	
+}
 
 void Loop() {
 	Setdead();
@@ -189,9 +257,10 @@ void Loop() {
 	double ptime = 0;
 	double btime = 0;
 	double stime = 0;
-	for (int r=0;r<185;r++) {
+//	for (int r=0;r<185;r++) {
+//	for (int r=0;r<=90;r++) {
+	for (int r=91;r<185;r++) {
 		int cnt = 0;
-	//for (int r=0;r<=90;r++) {
 		if (!deadfile[r] && UCNon[r] != -1) {  if (Open(r)) {
 			cout << "Run " << r;
 			int numev = ucnf.GetNumEvents();
@@ -202,16 +271,20 @@ void Loop() {
 			do {
 				ucnf.GetEvent(ev);
 				ULong64_t mask = 0;
+				bool westside = true;
+				int thech = -1;
 				for (int ch=0;ch<maxch;ch++){
 					if (ucnf.myEvent.E[ch] > 0) {
 						ULong64_t bit = 0x1;
 						mask += bit<<ch;
+						if (ch >= 24) westside = false;
+						thech = ch;
 					}
 				}
-				if (mask & deadmask[r] == 0 && ucnf.myEvent.tprev*4.e-3 < 500 && ucnf.myEvent.E[0] == 0) { 
+				if (mask & deadmask[r] == 0 && ucnf.myEvent.tprev*4.e-3 < 500 && westside) { 
 				//Good event
-					if (ucnf.myEvent.tprev*4.e-3 > 5 && ucnf.myEvent.Esum > 25)
-						cnt++;
+					cnt++;
+					cout << "(ch "<<thech<<") ";
 					Hsum->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
 					if (UCNon[r] && HVon[r])
 						HVonUCNon->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
@@ -242,7 +315,8 @@ void Loop() {
 				stime += fulltime;
 				scnt += cnt;
 			}
-			cout << "\t" << (double)cnt / fulltime << " Hz\t\t" << fulltime << endl;
+			if (fulltime != 0)
+				cout << "\t" << (double)cnt / fulltime << " Hz\t\t" << fulltime << endl;
 			}
 		}
 	}
@@ -257,9 +331,12 @@ void Loop() {
 	HVonUCNoff->Draw("COLZ");
 
 	cout << "totals" << endl;
-	cout << pcnt << "/" << ptime << " = " << (double)pcnt/ptime << endl;
-	cout << bcnt << "/" << btime << " = " << (double)bcnt/btime << endl;
-	cout << scnt << "/" << stime << " = " << (double)scnt/stime << endl;
+	if (ptime != 0)
+		cout << pcnt << "/" << ptime << " = " << (double)pcnt/ptime << endl;
+	if (btime != 0)
+		cout << bcnt << "/" << btime << " = " << (double)bcnt/btime << endl;
+	if (stime != 0)
+		cout << scnt << "/" << stime << " = " << (double)scnt/stime << endl;
 }
 
 void PlotProtonChannels() {
