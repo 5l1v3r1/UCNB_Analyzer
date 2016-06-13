@@ -39,7 +39,7 @@ void DoRaw(int filenum);
 void DoTrig(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
-void DoColl(int filenum, int smp);
+void DoColl(int filenum, int smp, std::string calibfile);
 void DoAve(int filenum, int thresh);
 void DoCalib(int thresh, int decay, int shaping, int top);
 void DoShapeScan(int scansrc);
@@ -70,6 +70,7 @@ int main (int argc, char *argv[]) {
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1, scansrc=-1;
   dataformat = 2;
   path = "";
+  std::string calibfile = "";
 
   //-----Parse parameters
   while (i+1 <= argc) {
@@ -89,6 +90,25 @@ int main (int argc, char *argv[]) {
 		i++;
 		if (gSystem->AccessPathName(path.c_str())) {
 			cout << "bad path: " << path << " not found " << endl;
+			return 1;
+		}
+	}
+    if (strcmp(argv[i],"-calibfile")==0) {
+		i++;
+		if (i+1 > argc) {
+			cout << "Missing argument for -cailbfile" << endl;
+			Usage(argv[0]);
+			return 1;
+		}
+		if (argv[i][0] == '-') {
+			cout << "Missing valid argument for -calibfile" << endl;
+			Usage(argv[0]);
+			return 1;
+		}
+		calibfile += argv[i];
+		i++;
+		if (gSystem->AccessPathName(path.c_str())) {
+			cout << "bad file: " << path << " not found " << endl;
 			return 1;
 		}
 	}
@@ -318,7 +338,7 @@ int main (int argc, char *argv[]) {
 		if (dofit)
 			DoFit(filenum, fitthresh);
 		if (docoll)
-			DoColl(filenum, smpcoll);
+			DoColl(filenum, smpcoll, calibfile);
 		if (doave)
 			DoAve(filenum, avethresh);
 	}
@@ -612,8 +632,7 @@ void DoFit(int filenum, int thresh) {
 	RootFile.Close();	
 }
 
-void DoColl(int filenum, int smp) {
-  //In development
+void DoColl(int filenum, int smp, std::string calibfile) {
   cout << "Collecting single-event coincidences in file " << filenum << endl;
   //-----Open input/output files
   TrigTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
@@ -641,7 +660,21 @@ void DoColl(int filenum, int smp) {
     InputFile.Close();
     return;
   }
+  
+  //-----Open calibration file
+  double q0[48],q1[48],q2[48];
+  for(int i=0; i<48; i++) {
+	  q0[i]=0;q1[i]=1;q2[i]=0;
+  }
+  if (calibfile.compare("") != 0) { 
+  ifstream cal(calibfile.c_str());
+  for(int i=0; i<48; i++)
+    {
+      cal>>q2[i]>>q1[i]>>q0[i];
+    }
+  }
   int numch = MAXCH*MAXRIO;
+  double tlast = -1, Elast = -1;
   do {
     //-----Get start trigger of event
     printf("Working....%d/%d  (%d %%)\r",StartEv,nentries,100*StartEv/nentries);
@@ -649,15 +682,33 @@ void DoColl(int filenum, int smp) {
       EventFile.myEvent.E[ch] = 0;
     InputFile.GetEvent(StartEv);
     EventFile.myEvent.t = InputFile.Trig_event.t;
+	EventFile.myEvent.tprev = (tlast == -1)? -1 : (EventFile.myEvent.t - tlast);
+	EventFile.myEvent.Eprev = (Elast == -1)? -1 : Elast;
+	tlast = EventFile.myEvent.t;
+	EventFile.myEvent.numch = 0;
     //-----Get triggers within window
     int ev = StartEv;
     do {
-      EventFile.myEvent.E[InputFile.Trig_event.ch] += InputFile.Trig_event.E;
+	  double Ecal = q2[InputFile.Trig_event.ch]*InputFile.Trig_event.E*InputFile.Trig_event.E/16. + q1[InputFile.Trig_event.ch]*InputFile.Trig_event.E/4. + q0[InputFile.Trig_event.ch];
+	  if (Ecal > 5)
+		EventFile.myEvent.E[InputFile.Trig_event.ch] += Ecal;
       ev++;
       if (ev < nentries)
-	InputFile.GetEvent(ev);
-    }while (ev < nentries && (InputFile.Trig_event.t - EventFile.myEvent.t)<smp);
-    EventFile.FillTree();
+		InputFile.GetEvent(ev);
+      }while (ev < nentries && (InputFile.Trig_event.t - EventFile.myEvent.t)<smp);
+	EventFile.myEvent.Esum = 0;
+	for (int ch = 0; ch < MAXCH*MAXRIO; ch++) {
+		if (EventFile.myEvent.E[ch] > 5) {
+			EventFile.myEvent.numch++;
+			EventFile.myEvent.Esum += EventFile.myEvent.E[ch];
+		}
+	}
+	Elast = EventFile.myEvent.Esum;
+	EventFile.myEvent.run = filenum;
+	EventFile.myEvent.wavefile = -1;
+	EventFile.myEvent.waveev = -1;
+	if (Elast > 5)
+		EventFile.FillTree();
     StartEv = ev;
   } while (StartEv < nentries);
   EventFile.Write();

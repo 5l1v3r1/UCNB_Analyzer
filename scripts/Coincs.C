@@ -5,12 +5,41 @@
 // Example script for use in ROOT with typical analysis routines that haven't made their way into the main program. Warning: may contain lazy and inefficient programming; viewer discretion is advised.
 
 EventTreeFile etf;
+TString mypath = "Files/JanUCN";
 
+int maxch = MAXCH*MAXRIO;
 int dt = 250;
+
+//Quick check that Eprev works
+void CheckE(int run) {
+	etf.SetPath(mypath.Data());
+	if (!etf.Open(run)) return;
+	TH1D* h = MakeHist("hdiff",1000);
+	double elast = -1;
+	for (int i=0;i<etf.GetNumEvents();i++) {
+		etf.GetEvent(i);
+		if (elast != -1) h->Fill(elast-etf.myEvent.Eprev);
+		double elast = 0;
+		for (int ch=0;ch<maxch;ch++) {
+			if (etf.myEvent.E[ch] > 0) elast += etf.myEvent.E[ch];
+		}
+	}
+	h->Draw();
+}
+
+void PlotE(int i) {
+	etf.GetEvent(i);
+	TH1D* h = MakeHist("hsum",maxch);
+	double esum = 0;
+	for (int ch=0;ch<maxch;ch++) {
+		h->Fill(ch,etf.myEvent.E[ch]);
+	}
+	h->Draw();
+}
 
 //Plot num participating channels
 void PlotNumCh(int run) {
-	etf.SetPath("Files/Sources");
+	etf.SetPath(mypath.Data());
 	etf.Open(run); 
 	int maxch = MAXCH*MAXRIO;
 	TH1D* h = MakeHist("hnch",10);
@@ -27,7 +56,7 @@ void PlotNumCh(int run) {
 
 //Plot which channels
 void PlotCh(int run) {
-	etf.SetPath("Files/Sources");
+	etf.SetPath(mypath.Data());
 	etf.Open(run); 
 	int maxch = MAXCH*MAXRIO;
 	TH1D* h = MakeHist("hch",maxch);
@@ -41,9 +70,31 @@ void PlotCh(int run) {
 	h->Draw();
 }
 
+//Plot which channels
+void PlotChvTime(int run,double time) {
+	if (run <= 90)
+		etf.SetPath(mypath.Data());
+	else
+		etf.SetPath("Files/FebUCN");
+	etf.Open(run); 
+	int maxch = MAXCH*MAXRIO;
+	TH2D* hh = (TH2D*)gROOT->FindObject("hh");
+	if (hh != 0) delete hh;
+	hh = new TH2D("hh","hh",45,0,45,300,0,time);
+	for (int i=0;i<etf.GetNumEvents();i++) {
+		etf.GetEvent(i);
+		for (int ch=0;ch<maxch;ch++) {
+			if (etf.myEvent.E[ch] > 0)
+				hh->Fill(ch,etf.myEvent.t);
+		}
+	}
+	hh->Draw("COLZ");
+}
+
+
 //Plot channels with multiple hits
 void PlotMultCh(int run) {
-	etf.SetPath("Files/Sources");
+	etf.SetPath(mypath.Data());
 	etf.Open(run); 
 	int maxch = MAXCH*MAXRIO;
 	TH1D* h = MakeHist("hnch",maxch);
@@ -63,7 +114,7 @@ void PlotMultCh(int run) {
 }
 
 void PlotCh2D(int run) {
-	etf.SetPath("Files/Sources");
+	etf.SetPath(mypath.Data());
 	etf.Open(run); 
 	int maxch = MAXCH*MAXRIO;
 	TH2D* h = MakeHist("hnch",maxch,maxch);
@@ -92,7 +143,7 @@ void PlotCh2D(int run) {
 
 //Plot mask
 void PlotMask(int run) {
-	etf.SetPath("Files/Sources");
+	etf.SetPath(mypath.Data());
 	etf.Open(run); 
 	int maxch = MAXCH*MAXRIO;
 	TH1D* h = MakeHist("hmask",1000);

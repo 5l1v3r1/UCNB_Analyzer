@@ -70,7 +70,8 @@ bool TrigTreeFile::FillDecEvent(NIDec2015TrigBinFile::DecTrigBinEv_t* DecTrigBin
 	Trig_event.ch = DecTrigBinEv->board*MAXCH + DecTrigBinEv->channel;
 	Trig_event.t = (double)DecTrigBinEv->timestamp;
 	Trig_event.E = DecTrigBinEv->adc;
-	FillTree();
+	if (Trig_event.E != 0)
+		FillTree();
 	return true;
 }
   
@@ -78,7 +79,8 @@ bool TrigTreeFile::FillMayEvent(NIMay2016TrigBinFile::MayTrigBinEv_t* MayTrigBin
 	Trig_event.ch = MayTrigBinEv->board*MAXCH + MayTrigBinEv->channel;
 	Trig_event.t = (double)MayTrigBinEv->timestamp;
 	Trig_event.E = MayTrigBinEv->adc;
-	FillTree();
+	if (Trig_event.E != 0)
+		FillTree();
 	return true;
 }
 

@@ -27,8 +27,13 @@ class EventTreeFile : public TreeFile
 private:
   struct event_t{
     Double_t E[MAXCH*MAXRIO];
+	Double_t Esum;
     Double_t t;
+	Double_t Eprev;
+	Double_t tprev;
     Int_t numch;
+	Int_t run;
+	Int_t wavefile;
     Int_t waveev;
   };
 public:

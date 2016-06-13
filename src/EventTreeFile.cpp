@@ -31,6 +31,12 @@ EventTreeFile::~EventTreeFile() {
 void EventTreeFile::SetBranches() {
   RootTree->SetBranchAddress("E",&myEvent.E[0]);
   RootTree->SetBranchAddress("t",&myEvent.t);
+  RootTree->SetBranchAddress("Esum",&myEvent.Esum);
+  RootTree->SetBranchAddress("Eprev",&myEvent.Eprev);
+  RootTree->SetBranchAddress("tprev",&myEvent.tprev);
+  RootTree->SetBranchAddress("numch",&myEvent.numch);
+  RootTree->SetBranchAddress("run",&myEvent.run);
+  RootTree->SetBranchAddress("wavefile",&myEvent.wavefile);
   RootTree->SetBranchAddress("waveev",&myEvent.waveev);
   
   RootTree->GetEntry(0);
@@ -46,6 +52,12 @@ void EventTreeFile::MakeBranches() {
   Estr += "]/D";
   RootTree->Branch("E",&myEvent.E[0],Estr);
   RootTree->Branch("t",&myEvent.t,"t/D");
+  RootTree->Branch("Esum",&myEvent.Esum,"Esum/D");
+  RootTree->Branch("Eprev",&myEvent.Eprev,"Eprev/D");
+  RootTree->Branch("tprev",&myEvent.tprev,"tprev/D");
+  RootTree->Branch("numch",&myEvent.numch,"numch/I");
+  RootTree->Branch("run",&myEvent.run,"run/I");
+  RootTree->Branch("wavefile",&myEvent.wavefile,"wavefile/I");
   RootTree->Branch("waveev",&myEvent.waveev,"waveev/I");
 
 }

@@ -20,4 +20,5 @@
   
 //  gROOT->ProcessLine(".L scripts/Example.C");
   gROOT->ProcessLine(".L scripts/Coincs.C");
+  gROOT->ProcessLine(".L scripts/UCNPlot.C");
 }
