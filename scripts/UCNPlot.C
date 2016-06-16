@@ -247,10 +247,10 @@ void TrigLoop(int mych) {
 
 void Loop() {
 	Setdead();
-	TH2D* Hsum = new TH2D("sum","",100,0,500,50,0,500);
-	TH2D* HVonUCNon = new TH2D("HVUCN","",100,0,500,50,0,500);
-	TH2D* HVoffUCNon = new TH2D("UCN","",100,0,500,50,0,500);
-	TH2D* HVonUCNoff = new TH2D("HV","",100,0,500,50,0,500);
+	TH2D* Hsum = new TH2D("sum","",100,0,500,50,0,50);
+	TH2D* HVonUCNon = new TH2D("HVUCN","",100,0,500,50,0,50);
+	TH2D* HVoffUCNon = new TH2D("UCN","",100,0,500,50,0,50);
+	TH2D* HVonUCNoff = new TH2D("HV","",100,0,500,50,0,50);
 	int pcnt = 0;
 	int bcnt = 0;
 	int scnt = 0;
@@ -259,7 +259,7 @@ void Loop() {
 	double stime = 0;
 //	for (int r=0;r<185;r++) {
 //	for (int r=0;r<=90;r++) {
-	for (int r=91;r<185;r++) {
+	for (int r=101;r<104;r++) {
 		int cnt = 0;
 		if (!deadfile[r] && UCNon[r] != -1) {  if (Open(r)) {
 			cout << "Run " << r;
@@ -281,10 +281,9 @@ void Loop() {
 						thech = ch;
 					}
 				}
-				if (mask & deadmask[r] == 0 && ucnf.myEvent.tprev*4.e-3 < 500 && westside) { 
+				if (((mask & deadmask[r]) == 0) && ucnf.myEvent.tprev*4.e-3 < 500 && westside) { 
 				//Good event
 					cnt++;
-					cout << "(ch "<<thech<<") ";
 					Hsum->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
 					if (UCNon[r] && HVon[r])
 						HVonUCNon->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
