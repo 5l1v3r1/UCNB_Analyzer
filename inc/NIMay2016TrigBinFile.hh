@@ -22,8 +22,8 @@ public:
   struct MayTrigBinEv_t : public BinEv_t{
     unsigned long long int timestamp;
     int board;
-    short channel;
-    short adc;
+    unsigned short channel;
+    unsigned short adc;
   };
   unsigned long long int starttimestamp;
 private:
