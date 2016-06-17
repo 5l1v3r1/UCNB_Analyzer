@@ -3,16 +3,26 @@
 // See LICENSE.md included in top directory of this distribution.
 
 // Quick analysis of trig files from Jan and Feb run
+// To replay files (I used XYZ = 500)
+// ./Analyzer -f 0 185 -path "/Path/To/Files/" -format 1  -trig
+// ./Analyzer -f 0 185 -path "/Path/To/Files/" -calibfile "/Path/To/calibration.dat" -coll XYZ
+// To produce coincidence plot:
+// In ROOT:   Loop()
+
 
 EventTreeFile ucnf;
-TrigTreeFile ttf;
 TString janpath = "Files/JanUCN";
 TString febpath = "Files/FebUCN";
 
 int maxch = MAXCH*MAXRIO;
-int dt = 250;
 int deadfile[185]; //files to ignore
-ULong64_t deadmask[185]; //channels to ignore per run
+int deadmask[185]; //channels to ignore per run
+int deadmask2[185]; //next 32 channels hax
+struct badtime_t {
+	vector<double>start;
+	vector<double>stop;
+};
+badtime_t badtime[185]; //ignore time slot per run
 double tmax[185];
 int HVon[185] = {0,1,1,1,1,  1,1,1,0,0,
 				1,0,1,1,1,  1,1,0,1,1,
@@ -73,91 +83,112 @@ int AFPon[185]= {0,0,1,1,1,  1,1,1,1,1,
 				0,-1,-1,-1,-1};
 
 void Setdead() {
+	int bit = 0x1;
+	int sub = 32;
 	for (int i=0;i<185;i++) {
 		deadmask[i]=0;
 		deadfile[i]=0;
 		tmax[i] = 1.e13;
+		badtime[i].start.resize(0);
+		badtime[i].stop.resize(0);
 	}
-	//Not enough bits, break down
-	ULong64_t bit = 0x1;
 	deadmask[0] = bit<<10;
-	deadmask[1] = (bit<<42) + (bit<<35);
+	deadmask[1] = bit<<14;
+	deadmask2[1] = (bit<<(42-sub)) + (bit<<(35-sub));
+	badtime[1].start.push_back(0);
+	badtime[1].stop.push_back(2.e11);
+	tmax[1] = 1.e12;
+	deadmask[2] = bit<<14;
 	tmax[2] = 2.e11;
+	deadmask[3] = bit<<14;
+	deadmask2[3] = (bit<<(41-sub)) + ((bit<<38-sub)) + ((bit<<34-sub));
 	tmax[3] = 3.38e11;
-	deadmask[3] = (bit<<41) + (bit<<38) + (bit<<34) + (bit<<14);
-	deadmask[4] = (bit<<41) + (bit<<39) + (bit<<14);
-	deadmask[5] = bit<<41 + bit<<38 + bit<<14;
-	deadmask[6] = bit<<42 + bit<<41 + bit<<38 + bit<<34 + bit<<14;
+	deadmask[4] = bit<<14;
+	deadmask2[4] = (bit<<(41-sub)) + (bit<<(39-sub));
+	badtime[4].start.push_back(19.e9);
+	badtime[4].stop.push_back(23.e9);
+	deadmask[5] = bit<<14;
+	deadmask2[5] = (bit<<(41-sub)) + (bit<<(38-sub));
+	deadmask[6] = bit<<14;
+	deadmask2[6] = (bit<<(42-sub)) + (bit<<(41-sub)) + (bit<<(38-sub)) + (bit<<(34-sub));
 	deadmask[7] = bit<<14;
-	deadmask[8] = bit<<42 + bit<<41 + bit<<40 + bit<<38;
-	deadmask[9] = bit<<42 + bit<<41 + bit<<39 + bit<<38;
+	deadmask2[8] = (bit<<(42-sub)) + (bit<<(41-sub)) + (bit<<(40-sub)) + (bit<<(38-sub));
+	deadmask2[9] = (bit<<(42-sub)) + (bit<<(41-sub)) + (bit<<(39-sub)) + (bit<<(38-sub));
 	deadmask[10] = bit<<10;
-	deadmask[12] = bit<<10 + bit<<31;
+	deadmask[12] = (bit<<10) + (bit<<31);
 	deadmask[23] = bit<<8;
 	deadmask[25] = bit<<8;
 	deadmask[27] = bit<<8;
 	deadmask[29] = bit<<8;
-	deadmask[30] = bit<<40 + bit<<8;
+	deadmask[30] = bit<<8;
+	deadmask2[30] = (bit<<(40-sub));
 	deadmask[31] = bit<<13;
 	tmax[32] = 1.e11;
 	deadmask[32] = bit<<13;
 	deadmask[33] = bit<<13;
-	deadmask[34] = bit<<13 + bit<<8;
-	deadmask[35] = bit<<10 + bit<<8 + bit<<1;
-	deadmask[36] = bit<<10 + bit<<8;
-	deadmask[37] = bit<<10 + bit<<8;
-	deadmask[37] = bit<<10;
+	deadmask[34] = (bit<<13) + (bit<<8);
+	deadmask[35] = (bit<<10) + (bit<<8) + (bit<<1);
+	deadmask[36] = (bit<<10) + (bit<<8);
+	deadmask[37] = (bit<<10) + (bit<<8);
 	deadmask[38] = bit<<10;
 	deadmask[39] = bit<<10;
 	deadmask[41] = bit<<8;
 	deadmask[42] = bit<<8;
 	deadmask[43] = bit<<10;
-	deadmask[44] = bit<<10 + bit<<8;
+	deadmask[44] = (bit<<10) + (bit<<8);
 	deadmask[45] = bit<<8;
-	deadmask[47] = bit<<10 + bit<<8;
+	deadmask[47] = (bit<<10) + (bit<<8);
 	deadmask[48] = bit<<8;
 	deadmask[49] = bit<<8;
-	deadmask[50] = bit<<13 + bit<<8;
-	deadmask[51] = bit<<13 + bit<<8;
+	deadmask[50] = (bit<<13) + (bit<<8);
+	deadmask[51] = (bit<<13) + (bit<<8);
 	deadmask[52] = bit<<8;
-	deadmask[53] = bit<<10 + bit<<8;
-	deadmask[54] = bit<<10 + bit<<8;
-	deadmask[55] = bit<<10 + bit<<8;
+	deadmask[53] = (bit<<10) + (bit<<8);
+	deadmask[54] = (bit<<10) + (bit<<8);
+	deadmask[55] = (bit<<10) + (bit<<8);
+	deadmask[55] = (bit<<10) + (bit<<8);
 	tmax[56] = 2.75e11;
-	deadmask[56] = bit<<40 + bit<<13;
-	deadmask[57] = bit<<38 + bit<<39;
+	deadmask[56] = bit<<13;
+	deadmask2[56] = (bit<<(40-sub));
+	deadmask2[57] = (bit<<(38-sub)) + (bit<<(39-sub));
 	deadmask[58] = bit<<28;
 	tmax[59] = 2.5e11;
 	deadmask[60] = bit<<8;
 	deadmask[62] = bit<<13;
 	deadmask[65] = bit<<8;
-	deadmask[66] = bit<<8 + bit<<1;
+	deadmask[66] = (bit<<8) + (bit<<1);
 	deadfile[67] = 1;  //seems to be associated with loss of channels?
 	deadmask[68] = bit<<15;
 	deadmask[69] = bit<<15;
 	//Feb runs
-	deadmask[110] = bit<<4;
+	deadmask[108] = bit<<14;
+	deadmask[110] = (bit<<14) + (bit<<4);
 	deadmask[111] = bit<<4;
-	deadmask[112] = bit<<4;
-	deadmask[113] = bit<<4;
+	deadmask[112] = (bit<<14) + (bit<<4);
+	deadmask[113] = (bit<<14) + (bit<<4);
 	deadmask[115] = bit<<4;
 	deadmask[116] = bit<<4;
-	deadmask[117] = bit<<18 + bit<<15;
+	deadmask[117] = (bit<<18) + (bit<<15);
 	deadmask[119] = bit<<4;
 	deadmask[120] = bit<<4;
 	deadmask[122] = bit<<4;
 	deadmask[123] = bit<<28;
-	deadmask[117] = bit<<28 + bit<<4;
+	deadmask[117] = (bit<<28) + (bit<<4);
 	deadmask[126] = bit<<28;
-	deadmask[138] = bit<<28 + bit<<18 + bit<<15;
+	deadmask[138] = (bit<<28) + (bit<<18) + (bit<<15);
 	deadfile[139] = 1;
 	deadfile[140] = 1;
-	deadmask[146] = bit<<14 + bit<<4;
-	deadmask[147] = bit<<14 + bit<<4;
-	deadmask[148] = bit<<14 + bit<<4;
+	deadmask[146] = (bit<<14) + (bit<<4);
+	deadmask[147] = (bit<<14) + (bit<<4);
+	badtime[147].start.push_back(230e9);
+	badtime[147].stop.push_back(235e9);
+	badtime[147].start.push_back(276e9);
+	badtime[147].stop.push_back(278e9);
+	deadmask[148] = (bit<<14) + (bit<<4);
 	deadmask[149] = bit<<4;
 	deadmask[150] = bit<<4;
 	deadmask[151] = bit<<4;
+	deadmask[157] = bit<<4;
 	deadmask[158] = bit<<4;
 	deadmask[169] = bit<<4;
 	deadmask[170] = bit<<4;
@@ -177,128 +208,94 @@ bool Open(int run) {
 		ucnf.SetPath(febpath.Data());
 	return ucnf.Open(run);
 }
-bool OpenTrig(int run) {	
-	if (run <= 90)
-		ttf.SetPath(janpath.Data());
-	else
-		ttf.SetPath(febpath.Data());
-	return ttf.Open(run);
-}
 
-void TrigLoop(int mych) {
+void Loop(int run = -1) {
 	Setdead();
-	TH2D* Hsum = new TH2D("sum","",100,0,500,50,-500,1500);
-	TH2D* HVonUCNon = new TH2D("HVUCN","",100,0,500,50,-500,1500);
-	TH2D* HVoffUCNon = new TH2D("UCN","",100,0,500,50,-500,1500);
-	TH2D* HVonUCNoff = new TH2D("HV","",100,0,500,50,-500,1500);
-	for (int r=0;r<185;r++) {
-		if (!deadfile[r] && UCNon[r] != -1) {  if (OpenTrig(r)) {
-			cout << "Run " << r << endl;
-			int numev = ttf.GetNumEvents();
-			int StartEv = 0;
-			do {
-				ttf.GetEvent(StartEv);
-				double startt = ttf.Trig_event.t;
-				ULong64_t mask = 0;
-				ULong64_t bit = 0x1;
-				//mask += bit<<ttf.Trig_event.ch;
-				double startE = ttf.Trig_event.E;
-				if (mask & deadmask[r] == 0) {
-					int ev = StartEv + 1;
-					if (ev < numev)
-						ttf.GetEvent(ev);
-					double tdiff = (ttf.Trig_event.t - startt)*4.e-3;
-					while (tdiff < 1000 && ev < numev ) { //100 mus
-					//never called????
-						double esum = ttf.Trig_event.E;
-						cout << esum << endl;
-						mask = 0;
-						//mask += bit<<ttf.Trig_event.ch;
-						if (esum < 1500 && (mask & deadmask[r] == 0)) {
-							Hsum->Fill(tdiff,esum);
-							if (UCNon[r] && HVon[r])
-								HVonUCNon->Fill(tdiff,esum);
-							else if (UCNon[r] && !HVon[r])
-								HVoffUCNon->Fill(tdiff,esum);
-							else if (!UCNon[r] && HVon[r])
-								HVonUCNoff->Fill(tdiff,esum);
-						}
-						ev++;
-						if (ev < numev)
-							ttf.GetEvent(ev);
-						tdiff = (ttf.Trig_event.t - startt)*4.e-3;
-					}
-				}
-				StartEv++; // for now double-count
-			}while (StartEv < numev && ttf.Trig_event.t < tmax[r]);
-		}}
-	}
-	Hsum->Draw("COLZ");
-	TCanvas* c = new TCanvas();
-	c->Divide (1,3);
-	c->cd(1);
-	HVonUCNon->Draw("COLZ");
-	c->cd(2);
-	HVoffUCNon->Draw("COLZ");
-	c->cd(3);
-	HVonUCNoff->Draw("COLZ");
-	
-}
-
-void Loop() {
-	Setdead();
-	TH2D* Hsum = new TH2D("sum","",100,0,500,50,0,50);
-	TH2D* HVonUCNon = new TH2D("HVUCN","",100,0,500,50,0,50);
-	TH2D* HVoffUCNon = new TH2D("UCN","",100,0,500,50,0,50);
-	TH2D* HVonUCNoff = new TH2D("HV","",100,0,500,50,0,50);
+	TH2D* h = (TH2D*) gROOT->FindObject("HVUCN");  if (h != 0) delete h;
+	h = (TH2D*) gROOT->FindObject("UCN");  if (h != 0) delete h;
+	h = (TH2D*) gROOT->FindObject("HV");  if (h != 0) delete h;
+	TH2D* HVonUCNon = new TH2D("HVUCN","",300,-100,500,50,0,100);
+	TH2D* HVoffUCNon = new TH2D("UCN","",300,-100,500,50,0,100);
+	TH2D* HVonUCNoff = new TH2D("HV","",300,-100,500,50,0,100);
+	TH1D* elec = new TH1D("elec","",1000,0,1000);
 	int pcnt = 0;
 	int bcnt = 0;
 	int scnt = 0;
 	double ptime = 0;
 	double btime = 0;
 	double stime = 0;
-//	for (int r=0;r<185;r++) {
-//	for (int r=0;r<=90;r++) {
-	for (int r=101;r<104;r++) {
+	int start = run;
+	int stop = run+1;
+	if (run == -1) {start = 0; stop = 185;}
+	for (int r=start;r<stop;r++) {
 		int cnt = 0;
 		if (!deadfile[r] && UCNon[r] != -1) {  if (Open(r)) {
-			cout << "Run " << r;
 			int numev = ucnf.GetNumEvents();
+			cout << "Run " << r;
 			int ev = 0;
-			double Eprevprev = -1; //how to do it*****
-			double tprevprev = -1;
+			bool westprev = false;
+			bool goodprev = false;
 			cnt = 0;
 			do {
 				ucnf.GetEvent(ev);
-				ULong64_t mask = 0;
+				int mask = 0, mask2 = 0;
 				bool westside = true;
 				int thech = -1;
 				for (int ch=0;ch<maxch;ch++){
 					if (ucnf.myEvent.E[ch] > 0) {
-						ULong64_t bit = 0x1;
-						mask += bit<<ch;
+						int bit = 0x1;
+						if (ch < 32)
+							mask += bit<<ch;
+						else
+							mask2 += bit<<(ch-32);
 						if (ch >= 24) westside = false;
 						thech = ch;
 					}
 				}
-				if (((mask & deadmask[r]) == 0) && ucnf.myEvent.tprev*4.e-3 < 500 && westside) { 
+				bool badt = false;
+				for (int i=0;i<badtime[r].start.size();i++) {
+					if (ucnf.myEvent.t > badtime[r].start[i] && ucnf.myEvent.t < badtime[r].stop[i])
+						badt = true;
+				}
+				bool Imaproton = false;
+				if (((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0) && ucnf.myEvent.tprev*4.e-3 < 500 && westside&& !badt && ucnf.myEvent.Eprev < 2000) { 
 				//Good event
-					cnt++;
-					Hsum->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
+					if (ucnf.myEvent.tprev*4.e-3 > 3 && ucnf.myEvent.tprev*4.e-3 < 200 && ucnf.myEvent.Esum > 5 && ucnf.myEvent.Esum < 25  && goodprev) {
+						cnt++;
+						elec->Fill(ucnf.myEvent.Eprev);
+						Imaproton = true;
+					}
+					gROOT->cd();
 					if (UCNon[r] && HVon[r])
 						HVonUCNon->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
 					else if (UCNon[r] && !HVon[r])
 						HVoffUCNon->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
 					else if (!UCNon[r] && HVon[r])
 						HVonUCNoff->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
+					if (UCNon[r] && HVon[r])
+						elec->Fill(ucnf.myEvent.Eprev);
 				}
-				Eprevprev = ucnf.myEvent.Eprev;
-				tprevprev = ucnf.myEvent.tprev;
+				//Look backwards
+				if (goodprev && westprev && ucnf.myEvent.tprev*4.e-3 < 100 && ((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0) && !Imaproton && ucnf.myEvent.Eprev < 2000 && ucnf.myEvent.Esum < 2000) {
+					gROOT->cd();
+					if (UCNon[r] && HVon[r])
+						HVonUCNon->Fill(ucnf.myEvent.tprev*-4.e-3,ucnf.myEvent.Eprev);
+					else if (UCNon[r] && !HVon[r])
+						HVoffUCNon->Fill(ucnf.myEvent.tprev*-4.e-3,ucnf.myEvent.Eprev);
+					else if (!UCNon[r] && HVon[r])
+						HVonUCNoff->Fill(ucnf.myEvent.tprev*-4.e-3,ucnf.myEvent.Eprev);
+				}
+				westprev = westside;
+				goodprev = (!badt && ((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0));
 				ev++;
+				if (ev < numev) ucnf.GetEvent(ev);
 			}while (ev < numev && ucnf.myEvent.t < tmax[r]);
-			}
+			if (ucnf.myEvent.t >= tmax[r])
+				ucnf.GetEvent(ev-1);
 			double fulltime = ucnf.myEvent.t*4.e-9;
-			if (fulltime < 1.e6) {
+			for (int i=0;i<badtime[r].start.size();i++) {
+				fulltime -= (badtime[r].stop[i] - badtime[r].start[i])*4.e-9;
+			}
 			if (UCNon[r] && HVon[r]) {
 				cout << ": " << cnt << " protons ";
 				ptime += fulltime;
@@ -316,18 +313,27 @@ void Loop() {
 			}
 			if (fulltime != 0)
 				cout << "\t" << (double)cnt / fulltime << " Hz\t\t" << fulltime << endl;
-			}
-		}
+		}}
 	}
-	Hsum->Draw("COLZ");
-	TCanvas* c = new TCanvas();
-	c->Divide (1,3);
+	gROOT->cd();
+	c = (TCanvas*) gROOT->FindObject("canv"); if (c!=0) delete c;
+	c = new TCanvas("canv");
+	c->Divide(2,2);
 	c->cd(1);
+	HVonUCNon->SetStats(false);
+	HVonUCNon->GetZaxis()->SetRangeUser(0,200);
 	HVonUCNon->Draw("COLZ");
 	c->cd(2);
+	HVoffUCNon->SetStats(false);
+	HVoffUCNon->GetZaxis()->SetRangeUser(0,200);
 	HVoffUCNon->Draw("COLZ");
 	c->cd(3);
+	HVonUCNoff->SetStats(false);
+	HVonUCNoff->GetZaxis()->SetRangeUser(0,200);
 	HVonUCNoff->Draw("COLZ");
+	c->cd(4);
+	elec->SetStats(false);
+	elec->Draw();
 
 	cout << "totals" << endl;
 	if (ptime != 0)
@@ -338,101 +344,42 @@ void Loop() {
 		cout << scnt << "/" << stime << " = " << (double)scnt/stime << endl;
 }
 
-void PlotProtonChannels() {
+void PlotProtonChannels(int r) {
 	Setdead();
 	TH1D* hch = new TH1D("hch","hch",48,0,48);
 	TH1D* Eprev = new TH1D("hEprev","",1000,0,1000);
-	for (int r=0;r<185;r++) {
-		if (!deadfile[r] && UCNon[r] && HVon[r]) {  if (Open(r)) {
-			cout << "Run " << r << endl;
-			int numev = ucnf.GetNumEvents();
-			int ev = 0;
-			do {
-				ucnf.GetEvent(ev);
-				ULong64_t mask = 0;
+	if (!deadfile[r] /*&& UCNon[r] && HVon[r]*/) {  if (Open(r)) {
+		cout << "Run " << r << endl;
+		int numev = ucnf.GetNumEvents();
+		int ev = 0;
+		do {
+			ucnf.GetEvent(ev);
+			ULong64_t mask = 0;
+			for (int ch=0;ch<maxch;ch++){
+				if (ucnf.myEvent.E[ch] > 0) {
+					ULong64_t bit = 0x1;
+					mask += bit<<ch;
+				}
+			}
+			bool badt = false;
+			for (int i=0;i<badtime[r].start.size();i++) {
+				if (ucnf.myEvent.t > badtime[r].start[i] && ucnf.myEvent.t < badtime[r].stop[i])
+					badt = true;
+			}
+			if ((mask & deadmask[r]) == 0 && ucnf.myEvent.tprev*4.e-3 < 200 && ucnf.myEvent.tprev*4.e-3 > 3 && ucnf.myEvent.Esum > 5 && ucnf.myEvent.Esum < 25 && !badt) { 
+				gROOT->cd();
+				Eprev->Fill(ucnf.myEvent.Eprev);
 				for (int ch=0;ch<maxch;ch++){
 					if (ucnf.myEvent.E[ch] > 0) {
-						ULong64_t bit = 0x1;
-						mask += bit<<ch;
+						hch->Fill(ch);
 					}
 				}
-				if (mask & deadmask[r] == 0 && ucnf.myEvent.tprev*4.e-3 < 500 && ucnf.myEvent.tprev*4.e-3 > 10 && ucnf.myEvent.Esum > 5 && ucnf.myEvent.Esum < 250) { 
-					Eprev->Fill(ucnf.myEvent.Eprev);
-					for (int ch=0;ch<maxch;ch++){
-						if (ucnf.myEvent.E[ch] > 0) {
-							hch->Fill(ch);
-						}
-					}
-				}
-				ev++;
-			}while (ev < numev && ucnf.myEvent.t < tmax[r]);
-		} }
-	}
+			}
+			ev++;
+		}while (ev < numev && ucnf.myEvent.t < tmax[r]);
+	}}
+	gROOT->cd();
 	hch->Draw();
 	new TCanvas();
 	Eprev->Draw();
-}
-
-void PlotAllE(int r) {
-	if (!Open(r)) return;
-	TH1D* h = new TH1D("hE","",500,-100,400);
-	for (int ev = 0; ev < ucnf.GetNumEvents(); ev++) {
-		ucnf.GetEvent(ev);
-		double esum = 0;
-		for (int ch=0;ch<maxch;ch++) {
-			esum += ucnf.myEvent.E[ch];
-		}
-		if (esum < 0) cout << ev << endl;
-		h->Fill(esum);
-	}
-	h->Draw();
-}
-
-void ScanAhead() {
-	Setdead();
-	TH2D* Hp = new TH2D("hp","",50,0,1000,50,0,500);
-	for (int r=0;r<1;r++) {
-//	for (int r=0;r<185;r++) {
-		if (!deadfile[r] && UCNon[r] != -1) {  if (Open(r)) {
-			cout << "Run " << r << endl;
-			int numev = ucnf.GetNumEvents();
-			int StartEv = 0;
-			do {
-				ucnf.GetEvent(StartEv);
-				double startt = ucnf.myEvent.t;
-				ULong64_t mask = 0;
-				double startE = 0;
-				for (int ch=0;ch<maxch;ch++){
-					if (ucnf.myEvent.E[ch] > 0) {
-						ULong64_t bit = 0x1;
-						mask += bit<<ch;
-						startE += ucnf.myEvent.E[ch];
-					}
-				}
-				int ev = StartEv+1;
-				ucnf.GetEvent(ev);
-				double tdiff = (ucnf.myEvent.t - startt)*4.e-3;
-				while (tdiff < 1000 && ev < numev) { //100 mus
-					//cout << StartEv << " and " << ev << endl;
-					//cout << "tdiff is " << tdiff << endl;
-					if (tdiff < 1000) {
-						double esum = 0;
-						for (int ch=0;ch<maxch;ch++) {
-							if (ucnf.myEvent.E[ch] > 0) {
-								esum += ucnf.myEvent.E[ch];
-							}
-						}
-						if (esum > 0 && esum < 500)
-							Hp->Fill(tdiff, esum);
-					}
-					ev++;
-					ucnf.GetEvent(ev);
-					tdiff = (ucnf.myEvent.t - startt)*4.e-3;
-				}
-				StartEv = ev;
-			}while (StartEv < numev && ucnf.myEvent.t < tmax[r]);
-		}
-		}
-	}
-	Hp->Draw("COLZ");
 }

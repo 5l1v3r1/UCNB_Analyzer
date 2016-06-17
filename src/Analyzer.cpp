@@ -672,11 +672,6 @@ void DoColl(int filenum, int smp, std::string calibfile) {
       cal>>q2[i]>>q1[i]>>q0[i];
     }
   }
-  else { // Quick Cal
-	for(int i=0; i<48; i++) {
-	  q0[i]=-4.;q1[i]=0.041;q2[i]=0;
-	}  
-  }
   int numch = MAXCH*MAXRIO;
   double tlast = -1, Elast = -1;
   do {
@@ -688,7 +683,6 @@ void DoColl(int filenum, int smp, std::string calibfile) {
     EventFile.myEvent.t = InputFile.Trig_event.t;
 	EventFile.myEvent.tprev = (tlast == -1)? -1 : (EventFile.myEvent.t - tlast);
 	EventFile.myEvent.Eprev = (Elast == -1)? -1 : Elast;
-	tlast = EventFile.myEvent.t;
 	EventFile.myEvent.numch = 0;
     //-----Get triggers within window
     int ev = StartEv;
@@ -707,12 +701,14 @@ void DoColl(int filenum, int smp, std::string calibfile) {
 			EventFile.myEvent.Esum += EventFile.myEvent.E[ch];
 		}
 	}
-	Elast = EventFile.myEvent.Esum;
 	EventFile.myEvent.run = filenum;
 	EventFile.myEvent.wavefile = -1;
 	EventFile.myEvent.waveev = -1;
-	if (Elast > 5)
+	if (EventFile.myEvent.Esum > 5) {
 		EventFile.FillTree();
+		Elast = EventFile.myEvent.Esum;
+		tlast = EventFile.myEvent.t;
+	}
     StartEv = ev;
   } while (StartEv < nentries);
   EventFile.Write();
