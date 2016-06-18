@@ -6,7 +6,7 @@
 // To replay files (I used XYZ = 500)
 // ./Analyzer -f 0 185 -path "/Path/To/Files/" -format 1  -trig
 // ./Analyzer -f 0 185 -path "/Path/To/Files/" -calibfile "/Path/To/calibration.dat" -coll XYZ
-// To produce coincidence plot:
+// To produce coincidence plots:
 // In ROOT:   Loop()
 
 
@@ -209,15 +209,17 @@ bool Open(int run) {
 	return ucnf.Open(run);
 }
 
+TH2D* HVonUCNon;
+TH2D* HVoffUCNon;
+TH2D* HVonUCNoff;
 void Loop(int run = -1) {
 	Setdead();
 	TH2D* h = (TH2D*) gROOT->FindObject("HVUCN");  if (h != 0) delete h;
 	h = (TH2D*) gROOT->FindObject("UCN");  if (h != 0) delete h;
 	h = (TH2D*) gROOT->FindObject("HV");  if (h != 0) delete h;
-	TH2D* HVonUCNon = new TH2D("HVUCN","",300,-100,500,50,0,100);
-	TH2D* HVoffUCNon = new TH2D("UCN","",300,-100,500,50,0,100);
-	TH2D* HVonUCNoff = new TH2D("HV","",300,-100,500,50,0,100);
-	TH1D* elec = new TH1D("elec","",1000,0,1000);
+	HVonUCNon = new TH2D("HVUCN","",300,-100,500,50,0,100);
+	HVoffUCNon = new TH2D("UCN","",300,-100,500,50,0,100);
+	HVonUCNoff = new TH2D("HV","",300,-100,500,50,0,100);
 	int pcnt = 0;
 	int bcnt = 0;
 	int scnt = 0;
@@ -258,11 +260,10 @@ void Loop(int run = -1) {
 						badt = true;
 				}
 				bool Imaproton = false;
-				if (((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0) && ucnf.myEvent.tprev*4.e-3 < 500 && westside&& !badt && ucnf.myEvent.Eprev < 2000) { 
+				if (((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0) && ucnf.myEvent.tprev*4.e-3 < 500 && westside&& !badt && ucnf.myEvent.Eprev < 2000 && westprev) { 
 				//Good event
 					if (ucnf.myEvent.tprev*4.e-3 > 3 && ucnf.myEvent.tprev*4.e-3 < 200 && ucnf.myEvent.Esum > 5 && ucnf.myEvent.Esum < 25  && goodprev) {
 						cnt++;
-						elec->Fill(ucnf.myEvent.Eprev);
 						Imaproton = true;
 					}
 					gROOT->cd();
@@ -272,8 +273,6 @@ void Loop(int run = -1) {
 						HVoffUCNon->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
 					else if (!UCNon[r] && HVon[r])
 						HVonUCNoff->Fill(ucnf.myEvent.tprev*4.e-3,ucnf.myEvent.Esum);
-					if (UCNon[r] && HVon[r])
-						elec->Fill(ucnf.myEvent.Eprev);
 				}
 				//Look backwards
 				if (goodprev && westprev && ucnf.myEvent.tprev*4.e-3 < 100 && ((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0) && !Imaproton && ucnf.myEvent.Eprev < 2000 && ucnf.myEvent.Esum < 2000) {
@@ -315,33 +314,130 @@ void Loop(int run = -1) {
 				cout << "\t" << (double)cnt / fulltime << " Hz\t\t" << fulltime << endl;
 		}}
 	}
-	gROOT->cd();
-	c = (TCanvas*) gROOT->FindObject("canv"); if (c!=0) delete c;
-	c = new TCanvas("canv");
-	c->Divide(2,2);
-	c->cd(1);
-	HVonUCNon->SetStats(false);
-	HVonUCNon->GetZaxis()->SetRangeUser(0,200);
-	HVonUCNon->Draw("COLZ");
-	c->cd(2);
-	HVoffUCNon->SetStats(false);
-	HVoffUCNon->GetZaxis()->SetRangeUser(0,200);
-	HVoffUCNon->Draw("COLZ");
-	c->cd(3);
-	HVonUCNoff->SetStats(false);
-	HVonUCNoff->GetZaxis()->SetRangeUser(0,200);
-	HVonUCNoff->Draw("COLZ");
-	c->cd(4);
-	elec->SetStats(false);
-	elec->Draw();
-
 	cout << "totals" << endl;
-	if (ptime != 0)
+	if (ptime != 0) {
 		cout << pcnt << "/" << ptime << " = " << (double)pcnt/ptime << endl;
-	if (btime != 0)
+		HVonUCNon->Scale(1./ptime);
+	}
+	if (btime != 0) {
 		cout << bcnt << "/" << btime << " = " << (double)bcnt/btime << endl;
-	if (stime != 0)
+		HVoffUCNon->Scale(1./btime);
+	}
+	if (stime != 0) {
 		cout << scnt << "/" << stime << " = " << (double)scnt/stime << endl;
+		HVonUCNoff->Scale(1./stime);
+	}
+	
+	gROOT->cd();
+	PrettyPlot();
+}
+
+void PrettyPlot() {
+	gStyle->SetOptStat(0);
+	gStyle->SetPalette(52);
+	
+	c = new TCanvas("canv","",600,1800);
+	gPad->SetTicks(0);
+	/*  Top pad  */
+	c->Divide(1,3,0.001,0.001);
+	TPad* pad = c->cd(1);
+	gPad->SetLeftMargin(0.1);
+	gPad->SetBottomMargin(0.15);
+	gPad->SetTopMargin(0.05);
+	gPad->SetRightMargin(0.2);
+	gPad->SetLogz();
+	TAxis* ax = HVonUCNon->GetXaxis();
+	ax->SetTitle("p - e time diff (#mus)");
+	ax->CenterTitle();
+	ax->SetTitleSize(0.07);
+	ax->SetLabelSize(0.07);
+	ax->SetTitleFont(132);
+	ax->SetLabelFont(132);
+	ax->SetNdivisions(6,false);
+	ax = HVonUCNon->GetYaxis();
+	ax->SetTitle("Energy (keV)");
+	ax->CenterTitle();
+	ax->SetTitleOffset(0.7);
+	ax->SetTitleSize(0.07);
+	ax->SetLabelSize(0.07);
+	ax->SetTitleFont(132);
+	ax->SetLabelFont(132);
+	ax->SetNdivisions(5,false);
+	ax = HVonUCNon->GetZaxis();
+	ax->SetTitle("Counts / bin / s");
+	ax->CenterTitle();
+	ax->SetTitleOffset(0.9);
+	ax->SetTitleSize(0.07);
+	ax->SetRangeUser(0,1.e-3);
+	ax->SetLabelSize(0.07);
+	ax->SetLabelFont(132);
+	HVonUCNon->Draw("COLZ");
+	/*  Middle pad  */
+	pad =(TPad*)c->cd(2);
+	gPad->SetLeftMargin(0.1);
+	gPad->SetBottomMargin(0.15);
+	gPad->SetTopMargin(0.05);
+	gPad->SetRightMargin(0.2);
+	gPad->SetLogz();
+	TAxis* ax = HVoffUCNon->GetXaxis();
+	ax->SetTitle("p - e time diff (#mus)");
+	ax->CenterTitle();
+	ax->SetTitleSize(0.07);
+	ax->SetTitleFont(132);
+	ax->SetLabelFont(132);
+	ax->SetLabelSize(0.07);
+	ax->SetNdivisions(6,false);
+	ax = HVoffUCNon->GetYaxis();
+	ax->SetTitle("Energy (keV)");
+	ax->CenterTitle();
+	ax->SetTitleOffset(0.7);
+	ax->SetTitleSize(0.07);
+	ax->SetLabelSize(0.07);
+	ax->SetTitleFont(132);
+	ax->SetLabelFont(132);
+	ax->SetNdivisions(5,false);
+	ax = HVoffUCNon->GetZaxis();
+	ax->SetTitle("Counts / bin / s");
+	ax->CenterTitle();
+	ax->SetTitleOffset(0.9);
+	ax->SetTitleSize(0.07);
+	ax->SetRangeUser(0,1.e-3);
+	ax->SetLabelSize(0.07);
+	ax->SetLabelFont(132);
+	HVoffUCNon->Draw("COLZ");
+	/*  Bottom pad  */
+	pad =(TPad*)c->cd(3);
+	gPad->SetLeftMargin(0.1);
+	gPad->SetBottomMargin(0.15);
+	gPad->SetTopMargin(0.05);
+	gPad->SetRightMargin(0.2);
+	gPad->SetLogz();
+	TAxis* ax = HVonUCNoff->GetXaxis();
+	ax->SetTitle("p - e time diff (#mus)");
+	ax->CenterTitle();
+	ax->SetTitleSize(0.07);
+	ax->SetLabelSize(0.07);
+	ax->SetTitleFont(132);
+	ax->SetLabelFont(132);
+	ax->SetNdivisions(6,false);
+	ax = HVonUCNoff->GetYaxis();
+	ax->SetTitle("Energy (keV)");
+	ax->CenterTitle();
+	ax->SetTitleOffset(0.7);
+	ax->SetTitleSize(0.07);
+	ax->SetLabelSize(0.07);
+	ax->SetTitleFont(132);
+	ax->SetLabelFont(132);
+	ax->SetNdivisions(5,false);
+	ax = HVonUCNoff->GetZaxis();
+	ax->SetTitle("Counts / bin / s");
+	ax->CenterTitle();
+	ax->SetTitleOffset(0.9);
+	ax->SetTitleSize(0.07);
+	ax->SetRangeUser(0,1.e-3);
+	ax->SetLabelSize(0.07);
+	ax->SetLabelFont(132);
+	HVonUCNoff->Draw("COLZ");
 }
 
 void PlotProtonChannels(int r) {
@@ -382,4 +478,56 @@ void PlotProtonChannels(int r) {
 	hch->Draw();
 	new TCanvas();
 	Eprev->Draw();
+}
+
+
+void CoincESpect(int run = -1) {
+	Setdead();
+	TH1D* h = (TH1D*) gROOT->FindObject("elec");  if (h != 0) delete h;
+	TH1D* elec = new TH1D("elec","",1000,0,1000);
+	int start = run;
+	int stop = run+1;
+	if (run == -1) {start = 0; stop = 185;}
+	for (int r=start;r<stop;r++) {
+		if (!deadfile[r] && UCNon[r] != -1) {  if (Open(r)) {
+			int numev = ucnf.GetNumEvents();
+			cout << "Run " << r << endl;
+			int ev = 0;
+			bool westprev = false;
+			bool goodprev = false;
+			do {
+				ucnf.GetEvent(ev);
+				int mask = 0, mask2 = 0;
+				bool westside = true;
+				for (int ch=0;ch<maxch;ch++){
+					if (ucnf.myEvent.E[ch] > 0) {
+						int bit = 0x1;
+						if (ch < 32)
+							mask += bit<<ch;
+						else
+							mask2 += bit<<(ch-32);
+						if (ch >= 24) westside = false;
+					}
+				}
+				bool badt = false;
+				for (int i=0;i<badtime[r].start.size();i++) {
+					if (ucnf.myEvent.t > badtime[r].start[i] && ucnf.myEvent.t < badtime[r].stop[i])
+						badt = true;
+				}
+				if (((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0) && westside && westprev && goodprev && !badt && ucnf.myEvent.tprev*4.e-3 > 3 && ucnf.myEvent.tprev*4.e-3 < 200 && ucnf.myEvent.Eprev < 2000 && ucnf.myEvent.Esum > 5 && ucnf.myEvent.Esum < 25) { 
+				//Good event
+					gROOT->cd();
+					elec->Fill(ucnf.myEvent.Eprev);
+				}
+				westprev = westside;
+				goodprev = (!badt && ((mask & deadmask[r]) == 0) && ((mask2 & deadmask2[r]) == 0));
+				ev++;
+				if (ev < numev) ucnf.GetEvent(ev);
+			}while (ev < numev && ucnf.myEvent.t < tmax[r]);
+		}}
+	}
+	gROOT->cd();
+	elec->SetStats(false);
+	elec->Draw();
+
 }
