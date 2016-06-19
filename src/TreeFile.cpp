@@ -214,7 +214,7 @@ bool TreeFile::Create(int filenum){
 //                              FillTree 
 /*************************************************************************/
 void TreeFile::FillTree(){
-  if (!RootFile->IsOpen()) {
+  if (!IsOpen()) {
     std::cout << "File not open" << std::endl;
     return;
   }
@@ -235,7 +235,7 @@ void TreeFile::FillTree(){
 //                                Write  
 /*************************************************************************/
 void TreeFile::Write(){
-  if (!RootFile->IsOpen()) {
+  if (!IsOpen()) {
     std::cout << "File not open" << std::endl;
     return;
   }
@@ -253,7 +253,7 @@ void TreeFile::Write(){
 //                               GetEvent  
 /*************************************************************************/
 void TreeFile::GetEvent(Int_t ev){
-  if (!RootFile->IsOpen()) {
+  if (!IsOpen()) {
     std::cout << "File not open" << std::endl;
     return;
   }

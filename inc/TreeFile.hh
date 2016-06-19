@@ -50,7 +50,7 @@ public:
 #endif // !defined (__CINT__)
   void FillTree();
   void Write();
-  Int_t GetNumEvents(){return RootTree->GetEntries();};
+  Int_t GetNumEvents(){if (IsOpen()) return RootTree->GetEntries(); else return 0;};
   void GetEvent(Int_t ev);
   std::string GetName() {return myname;};
   void SetPath(std::string newpath) {mypath = newpath; pathset = true;};
