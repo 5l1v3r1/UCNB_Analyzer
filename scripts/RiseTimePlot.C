@@ -11,8 +11,8 @@
 // In ROOT:   Loop(run,ch)
 // To see UVA's simulated plot (450 keV)
 // In ROOT:   PlotFromEmil()
-// To produce rise time comparison plot (first scan for ch with ~450 keV)
-// In ROOT:   Loop(run,ch)
+// To produce rise time comparison plot (try scan for event with ~450 keV)
+// In ROOT:   RiseTime(run,ev)
 
 WaveformAnalyzer wf;
 RawTreeFile rtf;
@@ -85,7 +85,6 @@ double RiseTime(int run, int ev) {
 	double plothi = 1000;
 	
 	/*Pretty plot*/
-	gPad->SetTicks(0);
 	gPad->SetLeftMargin(0.15);
 	gPad->SetBottomMargin(0.15);
 	gPad->SetTopMargin(0.05);
@@ -150,11 +149,13 @@ double RiseTime(int run, int ev) {
 	hsim->SetLineWidth(2);
 	hsim->Scale(scale);
 	hsim->Draw("same");
-	TLegend* leg = new TLegend(0.25,0.475,0.4,0.625);
+	TLegend* leg = new TLegend(0.2,0.475,0.45,0.65);
 	leg->SetFillColor(0);
 	leg->SetLineColor(0);
-	leg->AddEntry(Graph,"meas","P");
-	leg->AddEntry(hsim,"sim","L");
+	TLegendEntry *entry=leg->AddEntry(Graph,"Measured","P");
+    entry->SetTextFont(132);
+	entry=leg->AddEntry(hsim,"Simulated","L");
+    entry->SetTextFont(132);
 	leg->Draw("same");
 	
 	return (t90-t10); // ns
