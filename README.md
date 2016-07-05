@@ -3,6 +3,8 @@ UCNB_Analyzer
 
 This software analyzes data taken using the UCNB/Nab detection system. These experiments will perform precise measurements of the neutron decay correlations B, a, and b.  This software processes the raw event waveforms using trapezoidal filters or pulse fitting, collects coincidences from charge-sharing, backscattering, or electron-proton events, and produces timing and energy spectra.
 
+See DOC.md for more information.
+
 Collaboration
 -------------
 is welcome.  Contact Leah Broussard (broussardlj@ornl.gov).
@@ -33,4 +35,4 @@ UCNB_Analyzer is based on work supported by the U.S. Department of Energy, Offic
 
 Copyright and license
 ---------------------
-Copyright 2016 UT-Battelle, LLC.  See LICENSE.md for details.  Based on UCNB_Analyzer v1.0, copyright 2016 Los Alamos National Security, LLC.
+Copyright 2016 UT-Battelle, LLC. Copyright 2016 Los Alamos National Security, LLC. The license is GNU GPL v2. See LICENSE.md for details.
