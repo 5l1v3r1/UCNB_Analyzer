@@ -421,26 +421,39 @@ void PrintAlltheThings(int ch) {
 }
 
 void PlotForPaper(int ch, char* fitopt) {
-	TCanvas* c = new TCanvas();
+	TCanvas* c= (TCanvas*)gROOT->FindObject("canv");
+	if (c!=0) delete c;
+	c = new TCanvas("canv","",600,400);
 	c->SetLogx();
 	c->SetLogy();
-	TLegend* leg = new TLegend(0.5,0.5,0.8,0.8);
-	TFile* f = new TFile("Files/Sources/ShapingScanBib.root");
+	gPad->SetLeftMargin(0.125);
+	gPad->SetBottomMargin(0.175);
+	gPad->SetTopMargin(0.05);
+	gPad->SetRightMargin(0.05);
+	TLegend* leg = new TLegend(0.4,0.7,0.94,0.94);
+	leg->SetNColumns(2);
+	leg->SetLineColor(kWhite);
+	leg->SetFillColor(kWhite);
 	TString gname = "g";
 	gname += ch;
+	/*
+	TFile* f = new TFile("Files/Sources/ShapingScanBib.root");
 	TGraph* g = (TGraph*)f->Get(gname);
 	if (g!=0) {
 	g->GetYaxis()->SetRangeUser(1.e5,1.e6);
 	g->SetMarkerStyle(24);
 	g->Draw("AP");
-	leg->AddEntry(g,"113Bi CE","LP");
+	TLegendEntry *entry=leg->AddEntry(g,"113Bi CE","LP");
+	entry->SetTextFont(132);
 	}
 	TF1* fitf = new TF1("fitbib",enc2,0,10,3);
-	fitf->SetParameters(20000,80000,50000);
+	fitf->SetParameters(20000,80000,80000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kBlack);
+	fitf->SetParLimits(2,80000,150000); //doesnt want to fit right
 	if (g!=0)
-	g->Fit(fitf,fitopt); 
+		g->Fit(fitf,fitopt); 
+	fitf->Draw("same");
 	TF1* ffh1 = new TF1("ffh1-bib",funch1,0,10,1);
 	ffh1->SetParameter(0,fitf->GetParameter(0));
 	ffh1->SetLineColor(kBlack);
@@ -462,16 +475,18 @@ void PlotForPaper(int ch, char* fitopt) {
 	gname += ch;
 	TGraph* g = (TGraph*)f->Get(gname);
 	if (g!=0) {
-	g->GetYaxis()->SetRangeUser(1.e5,1.e6);
+		g->GetYaxis()->SetRangeUser(1.e5,1.e6);
 	g->Draw("P");
-	leg->AddEntry(g,"113Sn CE","LP");
+	entry=leg->AddEntry(g,"113Sn CE","LP");
+	entry->SetTextFont(132);
 	}
 	TF1* fitf = new TF1("fitsnb",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kBlack);
 	if (g!=0)
-	g->Fit(fitf,fitopt); 
+		g->Fit(fitf,fitopt); 
+	fitf->Draw("same");
 	TF1* ffh1 = new TF1("ffh1-snb",funch1,0,10,1);
 	ffh1->SetParameter(0,fitf->GetParameter(0));
 	ffh1->SetLineColor(kBlack);
@@ -490,14 +505,17 @@ void PlotForPaper(int ch, char* fitopt) {
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanCex.root");
 	TGraph* g = (TGraph*)f->Get(gname);
-	g->SetMarkerStyle(22);
-	leg->AddEntry(g,"139Ce XR","LP");
+	g->SetMarkerStyle(25);
+	entry=leg->AddEntry(g,"139Ce XR","LP");
+	entry->SetTextFont(132);
 	g->Draw("P");
 	fitf = new TF1("fitcex",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kBlack);
-	g->Fit(fitf,fitopt);
+	if (g!=0)
+		g->Fit(fitf,fitopt);
+	fitf->Draw("same");
 	TF1* ffh1 = new TF1("ffh1-cex",funch1,0,10,1);
 	ffh1->SetParameter(0,fitf->GetParameter(0));
 	ffh1->SetLineColor(kBlack);
@@ -514,37 +532,71 @@ void PlotForPaper(int ch, char* fitopt) {
 	ffh1->SetLineStyle(2);
 	ffh1->Draw("same");
 	f->Close();
+	*/
 	f = new TFile("Files/Sources/ShapingScanSnx.root");
 	TGraph* g = (TGraph*)f->Get(gname);
 	if (g!=0) {
-	g->SetMarkerStyle(21);
-	g->Draw("P");
-	leg->AddEntry(g,"113Sn XR","LP");
+		g->SetMarkerStyle(20);
+		g->SetTitle("");
+		g->Draw("AP");
+	
+		ax = g->GetXaxis();
+		ax->SetTitle("Shaping Time (#mus)");
+		ax->CenterTitle();
+		ax->SetLimits(0.1,3);
+		ax->SetTitleOffset(1.25);
+		ax->SetTitleSize(0.07);
+		ax->SetLabelSize(0.07);
+		ax->SetTitleFont(132);
+		ax->SetLabelFont(132);
+		ax = g->GetYaxis();
+		ax->SetRangeUser(1e4,1e6);
+		ax->SetTitle("ENC^{2}");
+		ax->CenterTitle();
+		ax->SetTitleOffset(0.85);
+		ax->SetTitleSize(0.07);
+		ax->SetLabelSize(0.07);
+		ax->SetTitleFont(132);
+		ax->SetLabelFont(132);
+		entry=leg->AddEntry(g,"Measured","P");
+		entry->SetTextFont(132);
 	}
 	fitf = new TF1("fitsnx",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kBlack);
 	if (g!=0)
-	g->Fit(fitf,fitopt);
+		g->Fit(fitf,fitopt);
+	fitf->Draw("same");
+	entry=leg->AddEntry(fitf,"ENC^{2} fit","L");
+	entry->SetTextFont(132);
 	TF1* ffh1 = new TF1("ffh1-snx",funch1,0,10,1);
 	ffh1->SetParameter(0,fitf->GetParameter(0));
 	ffh1->SetLineColor(kBlack);
-	ffh1->SetLineStyle(2);
+	ffh1->SetLineWidth(1);
+	ffh1->SetLineStyle(1);
 	ffh1->Draw("same");
+		entry=leg->AddEntry(ffh1,"h_{1}/#tau","L");
+		entry->SetTextFont(132);
 	ffh1 = new TF1("ffh2-snx",funch2,0,10,1);
 	ffh1->SetParameter(0,fitf->GetParameter(1));
 	ffh1->SetLineColor(kBlack);
+	ffh1->SetLineWidth(3);
 	ffh1->SetLineStyle(2);
 	ffh1->Draw("same");
+		entry=leg->AddEntry(ffh1,"h_{2}","L");
+		entry->SetTextFont(132);
 	ffh1 = new TF1("ffh3-snx",funch3,0,10,1);
 	ffh1->SetParameter(0,fitf->GetParameter(2));
 	ffh1->SetLineColor(kBlack);
-	ffh1->SetLineStyle(2);
+	ffh1->SetLineWidth(1);
+	ffh1->SetLineStyle(4);
 	ffh1->Draw("same");
+		entry=leg->AddEntry(ffh1,"h_{3} #tau","L");
+		entry->SetTextFont(132);
 	f->Close();
 	
-		leg->Draw("same");
+	leg->Draw("same");
 }
 
 void PlotScanResults(int ch, char* fitopt) {
@@ -568,6 +620,14 @@ void PlotScanResults(int ch, char* fitopt) {
 	if (g!=0) {
 	g->SetMarkerColor(kBlue);
 	g->Draw("P");
+	double absmin = 1.e12;
+	for (int i=0;i<g->GetN();i++) {
+		double x,y;
+		g->GetPoint(i,x,y);
+		if (y < absmin) absmin = y;
+	}
+	double minfwhm = 2.35*TMath::Sqrt(absmin)*eVtoENC/1.e3;
+	cout << "absolute min fwhm: " << minfwhm << endl;
 	}
 	fitf = new TF1("fitsnx",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
@@ -585,26 +645,33 @@ void PlotScanResults(int ch, char* fitopt) {
 	fitf->SetParLimits(1,50000,150000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kGreen);
+	if (g!=0)
 	g->Fit(fitf,fitopt,"",0.55,10);
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanCex.root");
 	TGraph* g = (TGraph*)f->Get(gname);
+	if (g!=0) {
 	g->SetMarkerColor(kRed);
 	g->Draw("P");
+	}
 	fitf = new TF1("fitcex",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kRed);
+	if (g!=0)
 	g->Fit(fitf,fitopt);
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanBib.root");
 	TGraph* g = (TGraph*)f->Get(gname);
+	if (g!=0) {
 	g->SetMarkerColor(kViolet);
 	g->Draw("P");
+	}
 	fitf = new TF1("fitbib",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
 	fitf->SetNpx(1000);
 	fitf->SetLineColor(kViolet);
+	if (g!=0)
 	g->Fit(fitf,fitopt);
 	f->Close();
 }
@@ -652,18 +719,19 @@ void FitENC2(TGraph* g) {
 void FitFWHM(TGraph* g) {
 	int n = g->GetN();
 	vector<double> x(n), y(n);
-	for (int i=0;i<n;i++) 
+	for (int i=0;i<n;i++)
 		g->GetPoint(i,x[i],y[i]);
-	vector<double> yy(11);
+	vector<double> yy(n);
 	for (int i=0;i<n;i++) {
 		yy[i] = TMath::Sqrt(y[i])*3.7*2.35/1.e3;
 		g->SetPoint(i,x[i],yy[i]);
 	}
-	g->Draw("AP");
+	TGraph* g2 = new TGraph(n,&x[0],&yy[0]);
+	g2->Draw("AP");;
 	TF1* fitf = (TF1*) gROOT->FindObject("fitE");
 	if (fitf != 0) delete fitf;
 	fitf = new TF1("fitE",enc2,10,1000,3);
-	g->Fit(fitf);
+	g2->Fit(fitf);
 }
 
 void PlotScan(int ch) {
