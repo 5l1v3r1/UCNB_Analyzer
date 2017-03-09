@@ -82,6 +82,15 @@ int AFPon[185]= {0,0,1,1,1,  1,1,1,1,1,
 				-1,0,1,1,1, -1,-1,-1,-1,-1,
 				0,-1,-1,-1,-1};
 
+
+void Setdead();	
+bool Open(int run);
+void Loop(int run = -1);
+void PrettyPlot();
+void PlotProtonChannels(int r);
+void CoincESpect(int run = -1);
+
+
 void Setdead() {
 	int bit = 0x1;
 	int sub = 32;
@@ -101,7 +110,7 @@ void Setdead() {
 	deadmask[2] = bit<<14;
 	tmax[2] = 2.e11;
 	deadmask[3] = bit<<14;
-	deadmask2[3] = (bit<<(41-sub)) + ((bit<<38-sub)) + ((bit<<34-sub));
+	deadmask2[3] = (bit<<(41-sub)) + ((bit<<(38-sub))) + ((bit<<(34-sub)));
 	tmax[3] = 3.38e11;
 	deadmask[4] = bit<<14;
 	deadmask2[4] = (bit<<(41-sub)) + (bit<<(39-sub));
@@ -336,7 +345,7 @@ void PrettyPlot() {
 	gStyle->SetOptStat(0);
 	gStyle->SetPalette(52);
 	
-	c = new TCanvas("canv","",600,1800);
+	TCanvas* c = new TCanvas("canv","",600,1800);
 	gPad->SetTicks(0);
 	/*  Top pad  */
 	c->Divide(1,3,0.001,0.001);
@@ -379,7 +388,7 @@ void PrettyPlot() {
 	gPad->SetTopMargin(0.05);
 	gPad->SetRightMargin(0.2);
 	gPad->SetLogz();
-	TAxis* ax = HVoffUCNon->GetXaxis();
+	ax = HVoffUCNon->GetXaxis();
 	ax->SetTitle("p - e time diff (#mus)");
 	ax->CenterTitle();
 	ax->SetTitleSize(0.07);
@@ -412,7 +421,7 @@ void PrettyPlot() {
 	gPad->SetTopMargin(0.05);
 	gPad->SetRightMargin(0.2);
 	gPad->SetLogz();
-	TAxis* ax = HVonUCNoff->GetXaxis();
+	ax = HVonUCNoff->GetXaxis();
 	ax->SetTitle("p - e time diff (#mus)");
 	ax->CenterTitle();
 	ax->SetTitleSize(0.07);

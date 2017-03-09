@@ -177,7 +177,7 @@ bool RawTreeFile::FillMayEvent(vector<NIMay2016BinFile::MayBinEv_t*> &MayBinEv){
 			NI_event.wave[i] -= 16384;
 			}
 		}
-		if (NI_event.result == 1 && NI_event.eventID == 0)
+		if (NI_event.result == 1 /*&& NI_event.eventID == 0*/)
 			FillTree();
 		else if (NI_event.result == 0) { // DAQ buffer corrupted
 			return false;

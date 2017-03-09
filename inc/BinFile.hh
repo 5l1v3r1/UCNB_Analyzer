@@ -46,14 +46,14 @@ public:
 	bool Open(const char* path, const char* name);
 	bool Open(std::string path, std::string name);
 	bool Open(std::string filename);
-	virtual bool Open(int filenum, int rionum=-1) {}
+        virtual bool Open(int filenum, int rionum=-1) {return false;}
 	void Close();
 	inline bool IsOpen(){return fFileStream.is_open();}
 	bool CheckLength();
 	void Reset() {if (IsOpen()) {fFileStream.seekg(0,fFileStream.beg);}}
 	std::streampos GetPosition();
 	std::streampos GetLength() {return fFileLength;}
-	virtual bool ReadNextEvent(BinEv_t& NI_event) {}
+        virtual bool ReadNextEvent(BinEv_t& NI_event) {return false;}
 	void SetPath(std::string newpath) {mypath = newpath; pathset = true;}
 };
 

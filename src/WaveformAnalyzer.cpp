@@ -159,6 +159,9 @@ void WaveformAnalyzer::FitWave(Long64_t thresh, vector<Double_t> &E, vector<Doub
 #if defined (__CINT__)
   wavefit->Draw("same");
 #endif
+#if defined (__ROOTCLING__)
+  wavefit->Draw("same");
+#endif
 }
 
 void WaveformAnalyzer::FitWave(Long64_t thresh, vector<trigger_t> &triglist) {
@@ -387,6 +390,9 @@ bool WaveformAnalyzer::CheckBaseline() {
 #if defined (__CINT__)
   cout << slope << endl;
 #endif 
+#if defined (__ROOTCLING__)
+  cout << slope << endl;
+#endif 
   if (slope > 0.5 || slope < -0.5)
     return false;
   return true;
@@ -410,6 +416,9 @@ void WaveformAnalyzer::Plot() {
   g->GetXaxis()->SetLimits(-0.5,wavelen-0.5);
   //g->GetYaxis()->SetRangeUser(2500,4000);
 #if defined (__CINT__)
+  g->Draw("AP");
+#endif
+#if defined (__ROOTCLING__)
   g->Draw("AP");
 #endif
 }
@@ -453,6 +462,9 @@ void WaveformAnalyzer::PlotTrap() {
   gTrap->GetXaxis()->SetLimits(-0.5,wavelen-0.5);
   gTrap->SetMarkerColor(kBlue);
 #if defined (__CINT__)
+  gTrap->Draw("P");
+#endif
+#if defined (__ROOTCLING__)
   gTrap->Draw("P");
 #endif
 }

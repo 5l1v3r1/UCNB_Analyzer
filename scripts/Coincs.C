@@ -10,6 +10,17 @@ TString mypath = "Files/JanUCN";
 int maxch = MAXCH*MAXRIO;
 int dt = 250;
 
+void CheckE(int run);
+void PlotE(int i);
+void PlotNumCh(int run);
+void PlotCh(int run);
+void PlotChvTime(int run,double time);
+void PlotMultCh(int run);
+void PlotCh2D(int run);
+void PlotMask(int run);
+TH1D* MakeHist(const char* name, int len);
+TH2D* MakeHist(const char* name, int len1, int len2);
+
 //Quick check that Eprev works
 void CheckE(int run) {
 	etf.SetPath(mypath.Data());

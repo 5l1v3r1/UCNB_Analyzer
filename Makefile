@@ -7,7 +7,7 @@ vpath %.cpp src/
 vpath %.hh inc/
 
 ROOTCFLAGS  = $(shell root-config --cflags)
-ROOTLIBS = $(shell root-config --libs)   -lNew -lMinuit -lSpectrum
+ROOTLIBS = $(shell root-config --libs)  -lMinuit -lSpectrum
 ROOTGLIBS = $(shell root-config --glibs)
 
 CXX = g++

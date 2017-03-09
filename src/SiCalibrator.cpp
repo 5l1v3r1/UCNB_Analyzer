@@ -237,8 +237,8 @@ void SiCalibrator::FindPeaks() {
 				}
 				gErrorIgnoreLevel = kError;
 				int npeaks = spec->Search(hbi,sigma,"nodraw ",0.001);
-				float* adc = spec->GetPositionX();
-				float* amp = spec->GetPositionY();
+				Double_t* adc = spec->GetPositionX();
+				Double_t* amp = spec->GetPositionY();
 				for (int i=0; i<npeaks; i++) {
 					CalData[src].sourcedata[ch].ADC.push_back(adc[i]);
 					CalData[src].sourcedata[ch].Amp.push_back(amp[i]);

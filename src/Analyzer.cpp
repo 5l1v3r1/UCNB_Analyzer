@@ -32,7 +32,10 @@
 #include "TRint.h"
 #include "TStyle.h"
 
-using std::cin;
+using std::cin;  
+using std::cout;
+using std::endl;
+using std::ifstream;
 
 void Usage(std::string program);
 void DoRaw(int filenum);
@@ -60,8 +63,6 @@ const bool dodraw = true;
 //                            Main Function
 /*************************************************************************/
 int main (int argc, char *argv[]) {  
-  using std::cout;
-  using std::endl;
 
   cout << "Welcome to UCNB_Analyzer v1.2.3" << endl;
 
