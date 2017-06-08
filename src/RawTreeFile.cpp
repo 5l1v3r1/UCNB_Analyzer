@@ -81,11 +81,13 @@ bool RawTreeFile::FillEvent(vector<BinFile::BinEv_t*> &BinEv) {
 	vector<NIFeb2015BinFile::FebBinEv_t*> FebBinEv;
 	vector<NIJune2015BinFile::JuneBinEv_t*> JuneBinEv;
 	vector<NIMay2016BinFile::MayBinEv_t*> MayBinEv;
+	vector<NIMay2017BinFile::MayBinEv_t*> May17BinEv;
 	vector<BinFile::BinEv_t*>::iterator iter;
 	for (iter = BinEv.begin(); iter != BinEv.end(); ++iter) {
 		FebBinEv.push_back(dynamic_cast<NIFeb2015BinFile::FebBinEv_t*>(*iter));
 		JuneBinEv.push_back(dynamic_cast<NIJune2015BinFile::JuneBinEv_t*>(*iter));
 		MayBinEv.push_back(dynamic_cast<NIMay2016BinFile::MayBinEv_t*>(*iter));
+		May17BinEv.push_back(dynamic_cast<NIMay2017BinFile::MayBinEv_t*>(*iter));
 	}
 	if (FebBinEv[0]) {
 		return FillFebEvent(FebBinEv);
@@ -95,6 +97,9 @@ bool RawTreeFile::FillEvent(vector<BinFile::BinEv_t*> &BinEv) {
 	}
 	else if (MayBinEv[0]) {
 		return FillMayEvent(MayBinEv);		
+	}
+	else if (May17BinEv[0]) {
+		return FillMay17Event(May17BinEv);		
 	}
 	else 
 		return false;
@@ -174,6 +179,36 @@ bool RawTreeFile::FillMayEvent(vector<NIMay2016BinFile::MayBinEv_t*> &MayBinEv){
 		std::copy(MayBinEv[rio]->wave.begin(),MayBinEv[rio]->wave.begin()+NI_event.length,NI_event.wave);
 		for (int i=0;i<NI_event.length;i++) { //data fix
 			if (NI_event.wave[i] > 8192) {
+			NI_event.wave[i] -= 16384;
+			}
+		}
+		if (NI_event.result == 1 /*&& NI_event.eventID == 0*/)
+			FillTree();
+		else if (NI_event.result == 0) { // DAQ buffer corrupted
+			return false;
+		}
+	}
+	return true;
+}
+
+bool RawTreeFile::FillMay17Event(vector<NIMay2017BinFile::MayBinEv_t*> &MayBinEv){
+	for (int rio=0;rio<MayBinEv.size();rio++) {
+		NI_event.timestamp = MayBinEv[rio]->Curr; //LJB test
+		NI_event.board = MayBinEv[rio]->board;
+		NI_event.channel = MayBinEv[rio]->channel;
+		NI_event.ch = NI_event.board*MAXCH + NI_event.channel;
+		NI_event.eventID = MayBinEv[rio]->eventID;
+		NI_event.result = MayBinEv[rio]->result;
+		NI_event.length = MayBinEv[rio]->wave.size();
+		if (NI_event.length > MAXWAVE) {
+			NI_event.length = MAXWAVE;
+			cout << "Error, wavelength greater than defined MAXWAVE: " << MayBinEv[rio]->wave.size() << " > " << MAXWAVE << endl;
+			return false;
+		}
+		std::copy(MayBinEv[rio]->wave.begin(),MayBinEv[rio]->wave.begin()+NI_event.length,NI_event.wave);
+		for (int i=0;i<NI_event.length;i++) { //data fix
+			NI_event.wave[i] = NI_event.wave[i] & 16383;
+			if (NI_event.wave[i] >= 8192) {
 			NI_event.wave[i] -= 16384;
 			}
 		}

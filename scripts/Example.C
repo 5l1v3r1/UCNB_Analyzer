@@ -9,15 +9,31 @@ TrapTreeFile trapf;
 WaveformAnalyzer wf;
 RawTreeFile rtf;
 
-int shaping = 300, top = 300, decay = 200;
+int shaping = 300, top = 300, decaytime = 200;
 double tsmp = 4.e-9;
 int abslo = 350; int abshi = 6000;
 
+void PlotWave(int ev, int run);
+void PlotEventWave(int ev, int run);
+void FitPeak(int run, int decaytime, int shaping, int top);
+void GetFWHM(TF1* floo, double& mean, double& fwhm);
+void ReFit(int lo, int hi);
+double floof(Double_t* x, Double_t* par);
+double gaussian(Double_t* x, Double_t* par);
+double hypermet(Double_t* x, Double_t* par);
+double stepbkgd(Double_t* x, Double_t* par);
+double gaustail(Double_t* x, Double_t* par);
+void TTN(int run);
+void CompareRuns();
+
+
+
 //Plot a waveform and pulse fit function
 void PlotWave(int ev, int run) {
-	rtf.SetPath("Files/Sources");
+	rtf.SetPath("Files/2017May");
 	rtf.Open(run); 
 	rtf.GetEvent(ev);
+	wf.SetTrapPars(decaytime,shaping,top);
 	wf.MakeTrap(rtf.NI_event.length,rtf.NI_event.wave);
 	wf.Plot();
 	double thresh = 50;
@@ -32,7 +48,8 @@ void PlotWave(int ev, int run) {
 	double amp, mean, tau, integ, chi2;
 	wf.GetFitVals(amp, mean, tau, integ, chi2);
 	cout << "parameters: " << endl;
-	cout << amp << endl << mean << endl << tau << endl << integ << endl << chi2 << endl;
+	cout << "Amp: " << amp << endl << "Mean: " << mean << endl << "Tau: " << tau << endl << "integ: " << integ << endl << "Chi2: " << 
+	chi2 << endl;
 }
 
 //Plot a waveform given trigger event
@@ -43,13 +60,13 @@ void PlotEventWave(int ev, int run) {
 }
 
 //Fit a peak in an energy spectrum
-void FitPeak(int run, int decay, int shaping, int top) {
+void FitPeak(int run, int decaytime, int shaping, int top) {
 	TH1D* hCe = (TH1D*) gROOT->FindObject("hCe");
 	if (hCe != 0) delete hCe;
 	hCe = new TH1D("hCe","hCe",3000,0,6000);
 
 	trapf.SetPath("Files/Dec15/Fixed");
-	if (!trapf.Open(run,decay,shaping,top)) return;
+	if (!trapf.Open(run,decaytime,shaping,top)) return;
 	for (int i = 0; i < trapf.GetNumEvents(); i++) {
 		trapf.GetEvent(i);
 		if (trapf.Trap_event.ch == 9 && trapf.Trap_event.AveE > 0) {
@@ -112,6 +129,7 @@ void FitPeak(int run, int decay, int shaping, int top) {
 	part3->SetParameter(3,floo->GetParameter(2));
 	part3->SetLineColor(kGreen);
 	part3->Draw("same");
+	TF1* fgt = (TF1*) gROOT->FindObject("fgt");
 	fgt->SetLineColor(kBlack);
 	fgt->Draw("same");
 }
@@ -121,7 +139,7 @@ void GetFWHM(TF1* floo, double& mean, double& fwhm) {
 	fgt = new TF1("fgt", gaustail, 0, 6000, 5);
 	for (int i=0;i<5;i++)
 		fgt->SetParameter(i,floo->GetParameter(i));
-	double mean = fgt->GetMaximumX();
+	mean = fgt->GetMaximumX();
 	double max = fgt->GetMaximum();
 	double left = fgt->GetX(max/2.,0,mean);
 	double right = fgt->GetX(max/2.,mean,6000);
@@ -205,7 +223,7 @@ void TTN(int run) {
 	hPE = new TH1D("hPE","hPE",300,0,15000);
 	TH1D* ht = (TH1D*) gROOT->FindObject("ht");
 	if (ht != 0) delete ht;
-	TH1D* ht = new TH1D("ht","ht",400,-5000,15000);
+	ht = new TH1D("ht","ht",400,-5000,15000);
 	ftf.SetPath("Files/Dec15/Fixed");
 	ftf.Open(run);
 	ftf.GetEvent(0);
@@ -248,7 +266,7 @@ void CompareRuns(){
 	TH2D* hch = new TH2D("hch","hch",16,0,16,16,0,16);
 	TH1D* ht = (TH1D*) gROOT->FindObject("ht");
 	if (ht != 0) delete ht;
-	TH1D* ht = new TH1D("ht","ht",300,0,15000);
+	ht = new TH1D("ht","ht",300,0,15000);
 	TH2D* hPT = new TH2D("hPT","hPT",500,0,50,emax/4.,0,emax);
 	ftf.SetPath("Files/Dec15/Fixed");
 	ftf.Open(27); double endtime = 4*500.;
@@ -270,7 +288,7 @@ void CompareRuns(){
 			lastch = ftf.Fit_event.ch;
 		}
 	}
-	ftf.Open(30); double endtime = 4*510.;
+	ftf.Open(30); endtime = 4*510.;
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t; lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
@@ -290,9 +308,11 @@ void CompareRuns(){
 			lastch = ftf.Fit_event.ch;
 		}
 	}
-	ftf.Open(33); double endtime = 2250.;
+	ftf.Open(33); endtime = 2250.;
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t; lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
+		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -308,10 +328,11 @@ void CompareRuns(){
 			lastch = ftf.Fit_event.ch;
 		}
 	}
-	ftf.Open(35); double endtime = 1000.;
+	ftf.Open(35); endtime = 1000.;
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t; lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -327,10 +348,11 @@ void CompareRuns(){
 			lastch = ftf.Fit_event.ch;
 		}
 	}
-	ftf.Open(36); double endtime = 900.;
+	ftf.Open(36); endtime = 900.;
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t; lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -346,10 +368,11 @@ void CompareRuns(){
 			lastch = ftf.Fit_event.ch;
 		}
 	}
-	ftf.Open(38); double endtime = 1800.;
+	ftf.Open(38); endtime = 1800.;
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t; lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -381,6 +404,7 @@ void CompareRuns(){
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -393,6 +417,8 @@ void CompareRuns(){
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
+		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
 			if (diff > dmin && diff < dmax) //4 to 24 us
@@ -404,6 +430,7 @@ void CompareRuns(){
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -412,10 +439,11 @@ void CompareRuns(){
 			lasttime = time;
 		}
 	}
-	ftf.Open(37); double endtime = 1300.;
+	ftf.Open(37); endtime = 1300.;
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t; lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -435,6 +463,7 @@ void CompareRuns(){
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -447,6 +476,7 @@ void CompareRuns(){
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;
@@ -459,6 +489,7 @@ void CompareRuns(){
 	ftf.GetEvent(0); lasttime = ftf.Fit_event.t;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {
 		ftf.GetEvent(i);
+		double time = ftf.Fit_event.t;
 		
 		if (ftf.Fit_event.E > thresh && ftf.Fit_event.shaping > 180 && ftf.Fit_event.shaping < 240 && ftf.Fit_event.t*tsmp < endtime && ftf.Fit_event.ch != 2 && ftf.Fit_event.ch < 16) {
 			double diff = time - lasttime;

@@ -55,8 +55,8 @@ double invx(double* x, double* par);
 double enc2(double* x, double* par);
 
 std::string path;
-int dataformat; // 0 = feb15, 1 = june15, 2 = may16
-const int maxformat = 3; // only 2 formats so far
+int dataformat; // 0 = feb15, 1 = june15, 2 = may16, 3 = may17
+const int maxformat = 4; // 4 formats so far...
 const bool dodraw = true;
 
 /*************************************************************************/
@@ -69,7 +69,7 @@ int main (int argc, char *argv[]) {
   bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
   bool fileok = false;
   int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1, scansrc=-1;
-  dataformat = 2;
+  dataformat = 3;
   path = "";
   std::string calibfile = "";
 
@@ -393,6 +393,10 @@ void DoRaw(int filenum) {
 			InputEvent[rio] = new NIMay2016BinFile::MayBinEv_t;
 			InputFile[rio] = new NIMay2016BinFile();
 		}
+		else if (dataformat == 3) {
+			InputEvent[rio] = new NIMay2017BinFile::MayBinEv_t;
+			InputFile[rio] = new NIMay2017BinFile();
+		}
 		if (path.compare("") != 0) { 
 			InputFile[rio]->SetPath(path);
 		}
@@ -533,12 +537,20 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	WA.SetTrapPars(decay,shaping,top);
 	cout << "Applying trap filter (decay/rise/top = " << decay <<"/" << shaping << "/" << top << ") to file " << filenum << endl;
 	int filecount = 0;
+	//Shaping time scan hack, used for 1 set of runs
+	//int dlow = 250, dmid = 1200, dhi = 2000;
+	//int decaylist[] = {dlow,dlow,dlow,dlow,dlow, 			dmid,dmid,dlow,dmid,dlow,dhi,dlow,dlow,dhi,dhi,					dlow,dlow,dlow,dlow,dlow};
 	do {
 		int nentries = RootFile.GetNumEvents();
 		//-----Find triggers
 		for (int ev=0;ev<nentries;ev++) {
 			printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
 			RootFile.GetEvent(ev);
+			//Shaping time scan hack, used for 1 set of runs
+			//if (RootFile.NI_event.ch > 20) 
+			//	WA.SetTrapPars(dlow,shaping,top);
+			//else
+			//	WA.SetTrapPars(decaylist[RootFile.NI_event.ch],shaping,top);
 			WA.MakeTrap(RootFile.NI_event.length, RootFile.NI_event.wave);
 			vector<trigger_t> triglist; 
 			//maybe add veto for events too early in file

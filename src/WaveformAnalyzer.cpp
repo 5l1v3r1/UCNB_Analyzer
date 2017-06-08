@@ -32,7 +32,7 @@ WaveformAnalyzer::WaveformAnalyzer() {
   wavefit = new TF1("wavefit",WaveFit,0,MAXWAVE,4);
   wavefit->SetParLimits(0,-10000,10000);
   wavefit->SetParLimits(1,0,MAXWAVE);
-  wavefit->SetParLimits(2,10,300);
+  wavefit->SetParLimits(2,10,3000);
   wavefit->SetParLimits(3,0.1,5.0);
   decaytime = 250;//270;//247; - calibrate
   risetime = 250;
@@ -162,6 +162,9 @@ void WaveformAnalyzer::FitWave(Long64_t thresh, vector<Double_t> &E, vector<Doub
 #if defined (__ROOTCLING__)
   wavefit->Draw("same");
 #endif
+#if defined (__CLING__)
+  wavefit->Draw("same");
+#endif
 }
 
 void WaveformAnalyzer::FitWave(Long64_t thresh, vector<trigger_t> &triglist) {
@@ -262,6 +265,23 @@ void WaveformAnalyzer::GetTriggers(Long64_t thresh, vector<trigger_t> &triglist)
 			}
 			stop=smp;
 			if(stop - start > top*0.75) {
+				int mid = start + risetime + top/2.;
+				//flat top
+				thetrig.Flat0 = 0;
+				double cc =0;
+				for (int j=mid-top*0.75/2.;j<mid+top*0.75/2.&&j<wavelen;j++) {
+					thetrig.Flat0 += s_trap[j] - s_trap[j-1];
+					cc++;
+				}
+				thetrig.Flat0 = thetrig.Flat0/cc;
+				//overshoot
+				thetrig.Flat1 = 0;
+				cc =0;
+				for (int j=mid+top/2.+risetime;j<wavelen;j++) {
+					thetrig.Flat1 += s_trap[j] - s_trap[j-1];
+					cc++;
+				}
+				thetrig.Flat1 = thetrig.Flat1/cc;
 				max=max*sign;
 				thetrig.up = start;
 				thetrig.down = stop;
@@ -393,6 +413,9 @@ bool WaveformAnalyzer::CheckBaseline() {
 #if defined (__ROOTCLING__)
   cout << slope << endl;
 #endif 
+#if defined (__CLING__)
+  cout << slope << endl;
+#endif 
   if (slope > 0.5 || slope < -0.5)
     return false;
   return true;
@@ -419,6 +442,9 @@ void WaveformAnalyzer::Plot() {
   g->Draw("AP");
 #endif
 #if defined (__ROOTCLING__)
+  g->Draw("AP");
+#endif
+#if defined (__CLING__)
   g->Draw("AP");
 #endif
 }
@@ -465,6 +491,9 @@ void WaveformAnalyzer::PlotTrap() {
   gTrap->Draw("P");
 #endif
 #if defined (__ROOTCLING__)
+  gTrap->Draw("P");
+#endif
+#if defined (__CLING__)
   gTrap->Draw("P");
 #endif
 }
