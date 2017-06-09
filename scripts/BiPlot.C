@@ -1212,7 +1212,7 @@ double BiPlot() {
 	
 	
 	ax = sum->GetXaxis();
-	ax->SetTitle("Energy (keV)");
+	ax->SetTitle("Energy [keV]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(1.1);
 	ax->SetTitleSize(0.07);
@@ -1220,9 +1220,9 @@ double BiPlot() {
 	ax->SetTitleFont(132);
 	ax->SetLabelFont(132);
 	ax->SetNdivisions(8,true);
-	ax->SetRangeUser(0,600);
+	ax->SetRangeUser(0,1100);
 	ax = sum->GetYaxis();
-	ax->SetTitle("Intensity");
+	ax->SetTitle("Counts / keV");
 	ax->CenterTitle();
 	ax->SetTitleOffset(0.9);
 	ax->SetTitleSize(0.07);

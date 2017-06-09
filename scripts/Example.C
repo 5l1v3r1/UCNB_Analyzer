@@ -65,7 +65,7 @@ void FitPeak(int run, int decaytime, int shaping, int top) {
 	if (hCe != 0) delete hCe;
 	hCe = new TH1D("hCe","hCe",3000,0,6000);
 
-	trapf.SetPath("Files/Dec15/Fixed");
+	trapf.SetPath("Files/DecUCN");
 	if (!trapf.Open(run,decaytime,shaping,top)) return;
 	for (int i = 0; i < trapf.GetNumEvents(); i++) {
 		trapf.GetEvent(i);
@@ -224,7 +224,7 @@ void TTN(int run) {
 	TH1D* ht = (TH1D*) gROOT->FindObject("ht");
 	if (ht != 0) delete ht;
 	ht = new TH1D("ht","ht",400,-5000,15000);
-	ftf.SetPath("Files/Dec15/Fixed");
+	ftf.SetPath("Files/DecUCN");
 	ftf.Open(run);
 	ftf.GetEvent(0);
 	double lasttime = ftf.Fit_event.t;
@@ -268,7 +268,7 @@ void CompareRuns(){
 	if (ht != 0) delete ht;
 	ht = new TH1D("ht","ht",300,0,15000);
 	TH2D* hPT = new TH2D("hPT","hPT",500,0,50,emax/4.,0,emax);
-	ftf.SetPath("Files/Dec15/Fixed");
+	ftf.SetPath("Files/DecUCN");
 	ftf.Open(27); double endtime = 4*500.;
 	ftf.GetEvent(0); double lasttime = ftf.Fit_event.t; int lastch = ftf.Fit_event.ch;
 	for (int i = 0; i < ftf.GetNumEvents(); i++) {

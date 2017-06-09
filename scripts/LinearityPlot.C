@@ -4,7 +4,7 @@
 
 // Plots result of linearity scan (produced with separate code)
 
-void MakePlots() {
+void MakePlots(bool tocolor = false) {
 	
 	TGaxis::SetMaxDigits(2);
 	TCanvas* c1= (TCanvas*)gROOT->FindObject("canv");
@@ -81,7 +81,7 @@ void MakePlots() {
    Graph_Graph1->SetMaximum(6000);
    Graph_Graph1->SetStats(0);
 	ax = Graph_Graph1->GetXaxis();
-	ax->SetTitle("Input Amplitude (mV)");
+	ax->SetTitle("Input Amplitude [mV]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(1.05);
 	ax->SetTitleSize(0.07);
@@ -90,7 +90,7 @@ void MakePlots() {
 	ax->SetLabelFont(132);
 	ax->SetNdivisions(8,true);
 	ax = Graph_Graph1->GetYaxis();
-	ax->SetTitle("Output Amplitude (a.u.)");
+	ax->SetTitle("Output Amplitude [a.u.]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(0.55);
 	ax->SetTitleSize(0.07);
@@ -124,6 +124,7 @@ void MakePlots() {
    gre->SetTitle("");
    gre->SetMarkerStyle(28);
    gre->SetMarkerColor(kGray+2);
+   if (tocolor) gre->SetMarkerColor(kRed);
    {
    gre->SetPoint(0,3.996746,0.001228814);
    gre->SetPointError(0,0,0);
@@ -206,6 +207,10 @@ void MakePlots() {
 //   axis->SetNoExponent(kFALSE);
    axis->SetLineColor(kGray+2);
    axis->SetLabelColor(kGray+2);
+   if (tocolor){
+   axis->SetLineColor(kRed);
+   axis->SetLabelColor(kRed);   
+   }
 //   axis->SetTickSize(0);
    axis->CenterTitle();
    axis->SetLabelSize(0.07);
@@ -215,6 +220,8 @@ void MakePlots() {
    axis->SetTitleOffset(0.7);
    axis->SetTitle("Fractional residuals");
    axis->SetTitleColor(kGray+2);
+   if (tocolor)
+	   axis->SetTitleColor(kRed);
    axis->Draw();
    
    TLegend *leg = new TLegend(0.5,0.2,0.85,0.35,NULL,"brNDC");
@@ -242,6 +249,8 @@ void MakePlots() {
    entry->SetMarkerSize(1);
    entry->SetTextFont(132);
    entry->SetTextColor(kGray+2);
+   if (tocolor)
+	   entry->SetTextColor(kRed);
    leg->Draw();
    }
 }

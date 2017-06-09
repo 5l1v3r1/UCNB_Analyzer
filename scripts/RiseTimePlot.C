@@ -95,7 +95,7 @@ double RiseTime(int run, int ev) {
 	Graph->SetTitle("");
 	ax = Graph->GetXaxis();
 	ax->SetRangeUser(plotlo,plothi);
-	ax->SetTitle("Clock Sample (4ns bins)");
+	ax->SetTitle("Clock Sample [4ns bins]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(1.1);
 	ax->SetTitleSize(0.07);
@@ -105,7 +105,7 @@ double RiseTime(int run, int ev) {
 	ax->SetNdivisions(8,true);
 	ax = Graph->GetYaxis();
 	ax->SetRangeUser(-250,2250);
-	ax->SetTitle("Signal amplitude (a.u.)");
+	ax->SetTitle("Signal amplitude [a.u.]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(1.1);
 	ax->SetTitleSize(0.07);

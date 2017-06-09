@@ -23,7 +23,7 @@ double LeakageCurrentPlot() {
 	g->SetMarkerStyle(20);
 	g->SetTitle("");
 	ax = g->GetXaxis();
-	ax->SetTitle("Detector temperature (K)");
+	ax->SetTitle("Detector temperature [K]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(1.1);
 	ax->SetTitleSize(0.07);
@@ -33,7 +33,7 @@ double LeakageCurrentPlot() {
 	ax->SetNdivisions(8,true);
 	ax = g->GetYaxis();
 	ax->SetRangeUser(1.e-3,1e2);
-	ax->SetTitle("Leakage current (nA)");
+	ax->SetTitle("Leakage current [nA]");
 	ax->CenterTitle();
 	ax->SetTitleOffset(0.95);
 	ax->SetTitleSize(0.07);

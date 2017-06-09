@@ -108,7 +108,7 @@ int main (int argc, char *argv[]) {
 		}
 		calibfile += argv[i];
 		i++;
-		if (gSystem->AccessPathName(path.c_str())) {
+		if (gSystem->AccessPathName(calibfile.c_str())) {
 			cout << "bad file: " << path << " not found " << endl;
 			return 1;
 		}
@@ -649,9 +649,11 @@ void DoColl(int filenum, int smp, std::string calibfile) {
   cout << "Collecting single-event coincidences in file " << filenum << endl;
   //-----Open input/output files
   TrigTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
+  //TrapTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
   if (path.compare("") != 0) { 
 	InputFile.SetPath(path);
   }
+  //  if (!InputFile.Open(filenum, 200, 150,150)) {
   if (!InputFile.Open(filenum)) {
     cout << "Input file Not Open!" << endl;
     return;
@@ -693,6 +695,7 @@ void DoColl(int filenum, int smp, std::string calibfile) {
     for (int ch=0;ch<numch;ch++)
       EventFile.myEvent.E[ch] = 0;
     InputFile.GetEvent(StartEv);
+	//    EventFile.myEvent.t = InputFile.Trap_event.t;
     EventFile.myEvent.t = InputFile.Trig_event.t;
 	EventFile.myEvent.tprev = (tlast == -1)? -1 : (EventFile.myEvent.t - tlast);
 	EventFile.myEvent.Eprev = (Elast == -1)? -1 : Elast;
@@ -700,13 +703,16 @@ void DoColl(int filenum, int smp, std::string calibfile) {
     //-----Get triggers within window
     int ev = StartEv;
     do {
+		//	  double Ecal = q2[InputFile.Trap_event.ch]*InputFile.Trap_event.AveE*InputFile.Trap_event.AveE/16. + q1[InputFile.Trap_event.ch]*InputFile.Trap_event.AveE/4. + q0[InputFile.Trap_event.ch];
 	  double Ecal = q2[InputFile.Trig_event.ch]*InputFile.Trig_event.E*InputFile.Trig_event.E/16. + q1[InputFile.Trig_event.ch]*InputFile.Trig_event.E/4. + q0[InputFile.Trig_event.ch];
 	  if (Ecal > 5)
 		EventFile.myEvent.E[InputFile.Trig_event.ch] += Ecal;
+//		EventFile.myEvent.E[InputFile.Trap_event.ch] += Ecal;
       ev++;
       if (ev < nentries)
 		InputFile.GetEvent(ev);
       }while (ev < nentries && (InputFile.Trig_event.t - EventFile.myEvent.t)<smp);
+	  //      }while (ev < nentries && (InputFile.Trap_event.t - EventFile.myEvent.t)<smp);
 	EventFile.myEvent.Esum = 0;
 	for (int ch = 0; ch < MAXCH*MAXRIO; ch++) {
 		if (EventFile.myEvent.E[ch] > 5) {

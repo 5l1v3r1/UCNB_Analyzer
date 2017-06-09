@@ -11,6 +11,38 @@ TFile *f = 0;
 //3.62 at 300K, 3.72 at 80K
 double eVtoENC = 3.7;
 
+
+void SumPlot(int src);
+void Recal(double cal0, double cal1);
+void Open(int th, int d, int s, int t);
+void Open(int th, int s, int t);
+void ComparePlots(int ch);
+void ShowPlots(int ch);
+void CompareShaping(int src, int ch);
+void CebScan(int ch);
+void FitCeb(int ch, int shaping);
+double ceb(double*x, double* par);
+void CeXScan(int ch);
+void FitCeX(int ch, int shaping, int top);
+double cex(double*x, double* par);
+double pe(double E);
+void FitSnX(int ch, int shaping, int top);
+double snx(double*x, double* par);
+void LoopForFWHMX();
+void PrintAlltheThings(int ch);
+void PlotForPaper(int ch, const char* fitopt);
+void PlotScanResults(int ch, const char* fitopt);
+void FitENC2(TGraph* g);
+void FitFWHM(TGraph* g);
+void PlotScan(int ch);
+void SumResolutions();
+void Sumh3();
+double invx(double* x, double* par);
+double enc2(double* x, double* par);
+double funch1(double* x, double* par);
+double funch2(double* x, double* par);
+double funch3(double* x, double* par);
+
 void SumPlot(int src) {
 	if (f == 0) return;
 	TH2D* h2d;
@@ -53,6 +85,16 @@ void Open(int th, int d, int s, int t) {
 	name += th;
 	name += "d";
 	name += d; name += "s"; name += s; name += "t"; name += t;
+	name += ".root";
+	if (f != 0) delete f;
+	f = new TFile(name);
+}
+
+void Open(int th, int s, int t) {
+	TString name = "Files/Sources/SumCalData_th";
+	name += th;
+	name += "d200";
+	name += "s"; name += s; name += "t"; name += t;
 	name += ".root";
 	if (f != 0) delete f;
 	f = new TFile(name);
@@ -116,7 +158,7 @@ void ShowPlots(int ch) {
 void CompareShaping(int src, int ch) {
 	const int num = 11;
 	int sscan[] = {50,60,70,100,150,200,250,300,350,400,450};
-	EColor cols[] = {kBlack,kGray+2,kGray,kRed+2,kRed,
+	Color_t cols[] = {kBlack,kGray+2,kGray,kRed+2,kRed,
 		kOrange+7,kOrange+1,kOrange,kYellow+2,kGreen,
 		kGreen+2,kGreen-1,kCyan,kCyan+3,kBlue,
 		kBlue+3,kViolet+10,kViolet-5,kViolet};
@@ -286,7 +328,7 @@ double cex(double*x, double* par) {
 	double value = 0;
 	if (xval < loE || xval > hiE) {
 		TF1::RejectPoint();
-		return;
+		return 0;
 	}
 	for (int i=0;i<num;i++) {
 		double amp = branch[i]*pe(E[i]);
@@ -343,13 +385,13 @@ double snx(double*x, double* par) {
 	double E[] = {24.002,24.21,27.238,27.276,27.863};
 	double branch[] = {28,51.8,4.66,9,2.39};
 	//from NIST XCOM
-	double photoelec[] = {5.124,5.078,4.487,4.484.382}; //1e-7 cm^2/g
+	double photoelec[] = {5.124,5.078,4.487,4.48,4.382}; //1e-7 cm^2/g
 	double loE = 15;
 	double hiE = 50;
 	double value = 0;
 	if (xval < loE || xval > hiE) {
 		TF1::RejectPoint();
-		return;
+		return 0;
 	}
 	for (int i=0;i<num;i++) {
 		double amp = branch[i]*photoelec[i]/photoelec[0];
@@ -359,6 +401,36 @@ double snx(double*x, double* par) {
 	value += expamp*scale*TMath::Exp(-1.*xval/exptail);
 	return value*scale;
 }
+
+void LoopForFWHMX() {
+	TH1D* hSn = new TH1D("hSn","hSn",1000,0,5);
+	TH1D* hCe = new TH1D("hCe","hCe",1000,0,5);
+	TH1D* hSnb = new TH1D("hCe","hSnb",1000,0,5);
+	for (int ch=0;ch<48;ch++){
+		if (ch != 5 && ch != 10 && ch != 11 && ch != 13 && ch != 14) {
+			cout << "ch " << ch << endl;
+			PlotScanResults(ch,"Q");
+			TF1* foo = (TF1*)gROOT->FindObject("fitsnx");
+			double Sminx = foo->GetMinimumX(10*4.e-3,1000*4.e-3);
+			hSn->Fill(Sminx);
+			cout << Sminx << endl;
+			foo = (TF1*)gROOT->FindObject("fitcex");
+			double Cminx = foo->GetMinimumX(10*4.e-3,1000*4.e-3);
+			hCe->Fill(Cminx);
+			cout << Cminx << endl;
+			foo = (TF1*)gROOT->FindObject("fitsnb");
+			double Sbminx = foo->GetMinimumX(10*4.e-3,1000*4.e-3);
+			hSnb->Fill(Sbminx);
+			cout << Sbminx << endl;
+		}
+	}
+	hSn->Draw();
+	hCe->SetLineColor(kRed);
+	hCe->Draw("Same");
+	hSnb->SetLineColor(kGreen);
+	hSnb->Draw("same");
+}
+
 
 void PrintAlltheThings(int ch) {
 	TCanvas* c = new TCanvas();
@@ -376,38 +448,38 @@ void PrintAlltheThings(int ch) {
 			cout << foo->GetParameter(p) << "\t";
 		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
 		double minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
-		cout << nA <<  " nA; minfwhm=" << minfwhm << endl;
-		TF1* foo = (TF1*)gROOT->FindObject("fitcex");
+		cout << endl<< nA <<  " nA; minfwhm=" << minfwhm << " at " << foo->GetMinimumX(10*4.e-3,1000*4.e-3) << endl;
+		foo = (TF1*)gROOT->FindObject("fitcex");
 		leg->AddEntry(foo,"Ce Xray (33 keV)","l");
 		cout << "Ch" << ch << " Cex ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
-		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
-		double minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
-		cout << nA <<  " nA; minfwhm=" << minfwhm << endl;
-		TF1* foo = (TF1*)gROOT->FindObject("fitceb");
+		nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
+		cout << endl << nA <<  " nA; minfwhm=" << minfwhm << " at " << foo->GetMinimumX(10*4.e-3,1000*4.e-3) << endl;
+		foo = (TF1*)gROOT->FindObject("fitceb");
 		leg->AddEntry(foo,"Ce beta (127 keV)","l");
 		cout << "Ch" << ch << " Ceb ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
-		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
-		double minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
+		nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
 		cout << nA <<  " nA; minfwhm=" << minfwhm << endl;
-		TF1* foo = (TF1*)gROOT->FindObject("fitsnb");
+		foo = (TF1*)gROOT->FindObject("fitsnb");
 		leg->AddEntry(foo,"Sn beta (364 keV)","l");
 		cout << "Ch" << ch << " Snb ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
-		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
-		double minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
+		nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
 		cout << nA <<  " nA; minfwhm=" << minfwhm << endl;
-		TF1* foo = (TF1*)gROOT->FindObject("fitbib");
+		foo = (TF1*)gROOT->FindObject("fitbib");
 		leg->AddEntry(foo,"Bi beta (482 keV)","l");
 		cout << "Ch" << ch << " Bib ";
 		for (int p=0;p<3;p++)
 			cout << foo->GetParameter(p) << "\t";
-		double nA =  foo->GetParameter(2)*ustos*q/TrapA3;
-		double minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
+		nA =  foo->GetParameter(2)*ustos*q/TrapA3;
+		minfwhm = 2.35*TMath::Sqrt(foo->GetMinimum(10*4.e-3,1000*4.e-3))*eVtoENC/1.e3;
 		cout << nA <<  " nA; minfwhm=" << minfwhm << endl;
 		cout <<"*****************************" << endl;
 		leg->Draw("same");
@@ -420,7 +492,7 @@ void PrintAlltheThings(int ch) {
 		cout << "leakage current noise " << q*IL << endl;
 }
 
-void PlotForPaper(int ch, char* fitopt) {
+void PlotForPaper(int ch, const char* fitopt) {
 	TCanvas* c= (TCanvas*)gROOT->FindObject("canv");
 	if (c!=0) delete c;
 	c = new TCanvas("canv","",600,400);
@@ -540,8 +612,8 @@ void PlotForPaper(int ch, char* fitopt) {
 		g->SetTitle("");
 		g->Draw("AP");
 	
-		ax = g->GetXaxis();
-		ax->SetTitle("Shaping Time (#mus)");
+		TAxis* ax = g->GetXaxis();
+		ax->SetTitle("Shaping Time [#mus]");
 		ax->CenterTitle();
 		ax->SetLimits(0.1,3);
 		ax->SetTitleOffset(1.25);
@@ -551,7 +623,7 @@ void PlotForPaper(int ch, char* fitopt) {
 		ax->SetLabelFont(132);
 		ax = g->GetYaxis();
 		ax->SetRangeUser(1e4,1e6);
-		ax->SetTitle("ENC^{2}");
+		ax->SetTitle("ENC^{2} [e^{2}]");
 		ax->CenterTitle();
 		ax->SetTitleOffset(0.85);
 		ax->SetTitleSize(0.07);
@@ -599,7 +671,7 @@ void PlotForPaper(int ch, char* fitopt) {
 	leg->Draw("same");
 }
 
-void PlotScanResults(int ch, char* fitopt) {
+void PlotScanResults(int ch, const char* fitopt) {
 	TFile* f = new TFile("Files/Sources/ShapingScanSnb.root");
 	TString gname = "g";
 	gname += ch;
@@ -616,7 +688,7 @@ void PlotScanResults(int ch, char* fitopt) {
 	g->Fit(fitf,fitopt);
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanSnx.root");
-	TGraph* g = (TGraph*)f->Get(gname);
+	g = (TGraph*)f->Get(gname);
 	if (g!=0) {
 	g->SetMarkerColor(kBlue);
 	g->Draw("P");
@@ -637,9 +709,11 @@ void PlotScanResults(int ch, char* fitopt) {
 	g->Fit(fitf,fitopt);
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanCeb.root");
-	TGraph* g = (TGraph*)f->Get(gname);
+	g = (TGraph*)f->Get(gname);
+	if (g!=0) {
 	g->SetMarkerColor(kGreen);
 	g->Draw("P");
+	}
 	fitf = new TF1("fitceb",enc2,0,10,3);
 	fitf->SetParameters(20000,80000,50000);
 	fitf->SetParLimits(1,50000,150000);
@@ -649,7 +723,7 @@ void PlotScanResults(int ch, char* fitopt) {
 	g->Fit(fitf,fitopt,"",0.55,10);
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanCex.root");
-	TGraph* g = (TGraph*)f->Get(gname);
+	g = (TGraph*)f->Get(gname);
 	if (g!=0) {
 	g->SetMarkerColor(kRed);
 	g->Draw("P");
@@ -662,7 +736,7 @@ void PlotScanResults(int ch, char* fitopt) {
 	g->Fit(fitf,fitopt);
 	f->Close();
 	f = new TFile("Files/Sources/ShapingScanBib.root");
-	TGraph* g = (TGraph*)f->Get(gname);
+	g = (TGraph*)f->Get(gname);
 	if (g!=0) {
 	g->SetMarkerColor(kViolet);
 	g->Draw("P");
