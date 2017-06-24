@@ -24,11 +24,6 @@ WaveformAnalyzer::WaveformAnalyzer() {
   f = 0;
   h = 0;
   ch = 0;
-  numavebins = 250;
-  numavevals = 3000;
-  BinAve.resize(numavebins);
-  for (int i=0;i<numavebins;i++)
-    BinAve[i].resize(numavevals);
   wavefit = new TF1("wavefit",WaveFit,0,MAXWAVE,4);
   wavefit->SetParLimits(0,-10000,10000);
   wavefit->SetParLimits(1,0,MAXWAVE);
@@ -53,48 +48,6 @@ WaveformAnalyzer::~WaveformAnalyzer() {
   if (h!=0) delete h;
   if (f!=0) delete f;
   if (wavefit!=0) delete wavefit;
-}
-
-/*************************************************************************///                              BuildAve
-/*************************************************************************/
-void WaveformAnalyzer::BuildAve(Int_t wvlen, Short_t* wv) {
-  wavelen = wvlen;
-  if (wave.size() < wavelen) {
-    wave.reserve(wavelen);
-  }
-  if (wave.size() > wavelen) {
-    wave.resize(wavelen);
-  }
-  for (int smp = 0; smp < wavelen; smp++)
-    wave[smp] = wv[smp];
-  setup = true;
-
-  BaselineShift();
-
-  for (Int_t bin=0;bin<numavebins;bin++){
-    Int_t smp = 750 + bin*2;
-    Short_t val = wave[smp];
-    Short_t whatval = val + 50;
-    if (whatval > 0 && whatval < numavevals)
-      BinAve[bin][whatval]++;
-  }
-}
-/*************************************************************************/
-//                             ReturnAve
-/*************************************************************************/
-void WaveformAnalyzer::ReturnAve(vector<Double_t>& average){
-  average.resize(numavebins);
-  for (Int_t bin = 0; bin < BinAve.size(); bin++) {
-    average[bin] = 0;
-    double norm = 0;
-    for (Int_t val = 0; val < BinAve[bin].size(); val++) 
-      if (BinAve[bin][val]>0) {
-	average[bin] += val * BinAve[bin][val];
-	norm += BinAve[bin][val];
-      }
-    average[bin] = average[bin]/norm;
-    average[bin] = average[bin]-50;
-  }
 }
 
 /*************************************************************************/

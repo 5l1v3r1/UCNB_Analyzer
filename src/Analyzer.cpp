@@ -26,6 +26,7 @@
 #include "TrapTreeFile.hh"
 #include "EventTreeFile.hh"
 #include "WaveformAnalyzer.hh"
+#include "WaveformAverage.hh"
 #include "SiCalibrator.hh"
 
 #include "TApplication.h"
@@ -43,7 +44,7 @@ void DoTrig(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
 void DoColl(int filenum, int smp, std::string calibfile);
-void DoAve(int filenum, int thresh);
+void DoAve(int filenum, int decay, int shaping, int top);
 void DoCalib(int thresh, int decay, int shaping, int top);
 void DoShapeScan(int scansrc);
 double ceb(double*x, double* par);
@@ -260,18 +261,6 @@ int main (int argc, char *argv[]) {
     else if (strcmp(argv[i],"-ave")==0) {
       doave = true;
       i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -ave" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -ave" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      avethresh = atoi(argv[i]);
-      i++;
     }
     else if (strcmp(argv[i],"-cal")==0) {
       docal = true;
@@ -324,6 +313,11 @@ int main (int argc, char *argv[]) {
     Usage(argv[0]);
     return 1;
   }
+  if (doave && !dotrap) {
+	cout << "Use average with trap filter" << endl;
+	Usage(argv[0]);
+    return 1;
+  }
   
   
 	TApplication* myapp = 0;
@@ -334,14 +328,14 @@ int main (int argc, char *argv[]) {
 			DoRaw(filenum);
 		if (dotrig)
 			DoTrig(filenum);
-		if (dotrap)
+		if (dotrap && !doave)
 			DoTrap(filenum, trapthresh, decay, shaping, top);
 		if (dofit)
 			DoFit(filenum, fitthresh);
 		if (docoll)
 			DoColl(filenum, smpcoll, calibfile);
-		if (doave)
-			DoAve(filenum, avethresh);
+		if (doave && dotrap)
+			DoAve(filenum, decay, shaping, top);
 	}
   }
   if (docal) {
@@ -369,6 +363,7 @@ void Usage(std::string program) {
   cout << "      -decay <smp> to set linear trap decay constant" << endl;
   cout << "      -shaping <smp> to set linear trap shaping time" << endl;
   cout << "      -top <smp> to set linear trap flat top length" << endl;
+  cout << "-ave (with -trap) to build average waveform" << endl;
   cout << "-fit <threshold> to filter waveforms for events using pulse fitting" << endl;
   cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
   cout << "-cal <threshold> to perform calibration" << endl;
@@ -736,34 +731,75 @@ void DoColl(int filenum, int smp, std::string calibfile) {
   InputFile.Close();
 }
 
-void DoAve(int filenum, int thresh) {
-  //-----Open input/output files
-  RawTreeFile RootFile;
-  if (!RootFile.Open(filenum)) {
-    cout << "Input file not open!" << endl;
-    return;
-  }
-  FitTreeFile EvFile;
-  if (!EvFile.Open(filenum)) {
-    cout << "Event file Not Open!" << endl;
-    return;
-  }
-  int nentries = EvFile.GetNumEvents();
-  WaveformAnalyzer WA;
-  //-----Build average waveform
-  for (int ev=0;ev<nentries;ev++) {
-    printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
-    EvFile.GetEvent(ev);
-    if (EvFile.Fit_event.E>thresh && EvFile.Fit_event.integ < 1.5) {
-      RootFile.GetEvent(EvFile.Fit_event.waveev);
-      WA.BuildAve(RootFile.NI_event.length, RootFile.NI_event.wave);
-    }
-  }
-  RootFile.Close();
-  vector<Double_t> average;
-  WA.ReturnAve(average);  
-  //-----Write to file
-  TFile* newfile = new TFile("Test.root","RECREATE");
+void DoAve(int filenum, int decay, int shaping, int top) {
+	//-----Open input/output files
+	RawTreeFile RootFile;
+	if (path.compare("") != 0) { 
+		RootFile.SetPath(path);
+	}
+	if (!RootFile.Open(filenum)) {
+		cout << "Input file not open!" << endl;
+		return;
+	}
+	TrapTreeFile TrapFile;
+	if (path.compare("") != 0) { 
+		TrapFile.SetPath(path);
+	}
+	if (!TrapFile.Open(filenum, decay, shaping, top)) {
+		cout << "Trap file Not Open!" << endl;
+		//todo Go ahead and run it
+		return;
+	}
+	int nentries = TrapFile.GetNumEvents();
+	WaveformAnalyzer WA;
+	vector<vector<WaveformAverage> > wavelist;
+	int NumAmp = 5, MaxAmp = 5000, PreSmpBins = 100, SmpBins = 1000, NegAmpBins = 500, AmpBins = 3000;
+	wavelist.resize(NumAmp);
+	for (int i=0;i<wavelist.size();i++) {
+		wavelist[i].resize(MAXCH*MAXRIO);
+		for (int j=0;j<wavelist[i].size();j++) {
+			wavelist[i][j].SetBins(PreSmpBins,SmpBins,NegAmpBins,AmpBins);
+			char tempstr[255];
+			sprintf(tempstr,"ch%dE%d.root",j,i);
+			std::string hname = tempstr;
+			wavelist[i][j].SetHistName(hname);
+		}
+	}
+	//-----Build distribution of waveforms
+	for (int ev=0;ev<nentries;ev++) {
+		printf("Working....%d/%d  (%d %%)\r",ev,nentries,100*ev/nentries);
+		TrapFile.GetEvent(ev);
+		RootFile.GetEvent(TrapFile.Trap_event.waveev);
+	
+		double T0 = (TrapFile.Trap_event.up + TrapFile.Trap_event.down)/2 - top/2 - shaping; 
+		// LJB  looks bad, need better t0 finding algorithm
+		if (TrapFile.Trap_event.AveE > 0 && TrapFile.Trap_event.AveE < MaxAmp && T0 - PreSmpBins >= 0 && T0 + SmpBins < RootFile.NI_event.length) {
+			int whichamp = NumAmp*TrapFile.Trap_event.AveE / MaxAmp;
+			vector<short> wave(RootFile.NI_event.wave,RootFile.NI_event.wave+RootFile.NI_event.length);
+			wavelist[whichamp][TrapFile.Trap_event.ch].AddToAve(wave,T0,1./TrapFile.Trap_event.AveE);
+		}
+	}
+	RootFile.Close();
+	TrapFile.Close();
+	
+	//-----Write to file
+	for (int ch=0;ch<MAXCH*MAXRIO;ch++) {
+		char tempstr[255];
+		sprintf(tempstr,"Avech%d.root",ch);
+		std::string filename = path;
+		filename.append("/");
+		filename.append(tempstr);
+		cout << "Writing " << filename << endl;
+		TFile* newfile = new TFile(filename.c_str(),"RECREATE");
+		for (int i=0;i<wavelist.size();i++) {
+			wavelist[i][ch].Average();
+//			wavelist[i][ch].Write();  this writes 2x?
+// LJB Need to fix so that wavelist doesn't delete the TH1's which are owned by newfile after write/close
+		}	
+		newfile->Write();
+		newfile->Close();
+	}
+  /*
   TH1D* h = new TH1D("aveh","aveh",WA.BinAve.size(),0,WA.BinAve.size());
   for (int i=0;i<average.size();i++)
     h->Fill(i,average[i]);
@@ -771,8 +807,7 @@ void DoAve(int filenum, int thresh) {
   h->Fit(f,"QN","",0,50);
   Int_t maxbin = h->GetMaximumBin();
   cout << "Max value for run " << filenum << " is " << h->GetBinContent(maxbin) - f->Eval(maxbin) << endl;
-  newfile->Write();
-  newfile->Close();
+  */
 }
 
 void DoCalib(int thresh, int decay, int shaping, int top) {

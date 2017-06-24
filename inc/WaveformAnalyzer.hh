@@ -40,10 +40,7 @@ private:
   Int_t decaytime, risetime, risetop, top;
   Int_t pretrigger;
   Double_t baseline;
-  Int_t numavebins;
-  Int_t numavevals;
 public:
-  vector<vector<Short_t> > BinAve; //BinAve[whatbin][whatvalue]
   TGraph* g;
   TGraph* ds;
   TGraph* gTrap;
@@ -54,8 +51,6 @@ public:
   WaveformAnalyzer(int filenum);
   ~WaveformAnalyzer();
   void SetPars(Int_t dt, Int_t rt, Int_t top){decaytime = dt; risetime = rt; risetop = top+risetime;};
-  void BuildAve(Int_t wavelen, Short_t* wave);
-  void ReturnAve(vector<Double_t>& average);
   void MakeTrap(Int_t wavelen, Short_t* wave);
   void FitWave(Long64_t thresh, vector<Double_t> &E, vector<Double_t> &T);
   void FitWave(Long64_t thresh, vector<trigger_t> &triglist);

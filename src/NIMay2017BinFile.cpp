@@ -50,6 +50,7 @@ bool NIMay2017BinFile::ReadHeader() {
     return false;
   char dummy = '0';
   int i = 0;
+  //computer clock time (1972)
   fFileStream.seekg(8,fFileStream.beg);
   /*
   while (dummy != 'M' && GetPosition()<25) {
