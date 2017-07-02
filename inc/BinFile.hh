@@ -20,7 +20,7 @@ using std::endl;
 
 #define MAXWAVE 65536
 #define MAXCH 8
-#define MAXRIO 16
+#define MAXRIO 6
 
 class BinFile
 {

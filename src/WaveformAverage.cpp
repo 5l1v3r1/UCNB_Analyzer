@@ -21,8 +21,6 @@ double WaveFit(double* xx, double* par);
 WaveformAverage::WaveformAverage() {
 	baselinesmp = 500;
 	upsample = 1;
-	hAve = 0;
-	hDist = 0;
 	SetBins(100,1000,500,3000);
 }
 
@@ -30,8 +28,6 @@ WaveformAverage::WaveformAverage() {
 //                             Destructor
 /*************************************************************************/
 WaveformAverage::~WaveformAverage() {
-  if (hAve!=0) delete hAve;
-  if (hDist!=0) delete hDist;
 }
 
 
@@ -49,7 +45,8 @@ void WaveformAverage::SetBins(int ps, int s, int na, int a) {
 }
 
 
-/*************************************************************************///                     AddToAve
+/*************************************************************************/
+//                              AddToAve
 /*************************************************************************/
 void WaveformAverage::AddToAve(vector<short> &wave, double TOffset, double ANorm) {
 	BaselineShift(wave);
@@ -58,7 +55,7 @@ void WaveformAverage::AddToAve(vector<short> &wave, double TOffset, double ANorm
 	int shift = (int)TMath::Floor((TOffset - TMath::Floor(TOffset))*upsample);
 	for (int bin=0;bin<SmpBins;bin++) {
 		double wval = wave[bin+startsmp]*ANorm;
-		int aveval = wval*(AmpBins-NegAmpBins)*0.9 + NegAmpBins;
+		int aveval = wval*(AmpBins-NegAmpBins)*0.5 + NegAmpBins;
 		int avesmp = bin*upsample + shift;
 		if (avesmp < dist.size() && aveval < dist[0].size())
 			dist[avesmp][aveval]++;
@@ -70,26 +67,16 @@ void WaveformAverage::AddToAve(vector<short> &wave, double TOffset, double ANorm
 //                             Average
 /*************************************************************************/
 void WaveformAverage::Average(){
-	if (hAve!=0) delete hAve;
-	string name = "hAve";
-	name.append(hname);
-	hAve = new TH1D(name.c_str(),name.c_str(),SmpBins,-1.*PreSmpBins,SmpBins-PreSmpBins);
-	if (hDist!=0) delete hDist;
-	name = "hDist";
-	name.append(hname);
-	hDist = new TH2D(name.c_str(),name.c_str(),SmpBins,-1.*PreSmpBins,SmpBins-PreSmpBins,AmpBins,-1.*NegAmpBins,AmpBins-NegAmpBins);
-	vector<double> ave(dist.size());
+	ave.resize(dist.size());
 	for (int bin = 0; bin < dist.size(); bin++) {
 		ave[bin] = 0;
 		double norm = 0;
 		for (int val = 0; val < dist[bin].size(); val++) 
 			if (dist[bin][val]>0) {
-				hDist->SetBinContent(bin+1,val+1,dist[bin][val]);
 				ave[bin] += val * dist[bin][val];
 				norm += dist[bin][val];
 			}
 		ave[bin] = ave[bin]/norm;
-		hAve->SetBinContent(bin+1,ave[bin]);
 	}
 }
 
@@ -107,45 +94,31 @@ void WaveformAverage::BaselineShift(vector<short> &wave) {
   }  
 }
 
+
 /*************************************************************************/
-//                                Plot
+//                             GetDist
 /*************************************************************************/
-void WaveformAverage::Plot() {
-	/*
-  if (!setup) return;
-  TVectorD x(wavelen);
-  TVectorD y(wavelen);
-  for (int i=0;i<wavelen;i++) {
-    x[i] = i;
-    y[i] = wave[i];
-  }
-  if (g!=0)
-    delete g;
-  g = new TGraph(x,y);
-  g->SetMarkerStyle(20);
-  g->GetXaxis()->SetLimits(-0.5,wavelen-0.5);
-  //g->GetYaxis()->SetRangeUser(2500,4000);
-#if defined (__CINT__)
-  g->Draw("AP");
-#endif
-#if defined (__ROOTCLING__)
-  g->Draw("AP");
-#endif
-#if defined (__CLING__)
-  g->Draw("AP");
-#endif
-*/
+void WaveformAverage::GetDist(TH2D* hDist){
+	if (hDist!=0) delete hDist;
+	string name = "hDist";
+	name.append(hname);
+	hDist = new TH2D(name.c_str(),name.c_str(),SmpBins,-1.*PreSmpBins,SmpBins-PreSmpBins,AmpBins,-1.*(NegAmpBins/(AmpBins-NegAmpBins)),1.);
+	for (int bin = 0; bin < dist.size(); bin++)
+		for (int val = 0; val < dist[bin].size(); val++) 
+			if (dist[bin][val]>0)
+				hDist->SetBinContent(bin+1,val+1,dist[bin][val]);
 }
 
-
 /*************************************************************************/
-//                                Plot
+//                             GetAve
 /*************************************************************************/
-void WaveformAverage::Write() {
-	if (hAve!=0)
-		hAve->Write();
-	if (hDist!=0)
-		hDist->Write();
+void WaveformAverage::GetAve(TH1D* hAve){
+	if (hAve!=0) delete hAve;
+	string name = "hAve";
+	name.append(hname);
+	hAve = new TH1D(name.c_str(),name.c_str(),SmpBins,-1.*PreSmpBins,SmpBins-PreSmpBins);
+	for (int bin = 0; bin < dist.size(); bin++)
+		hAve->SetBinContent(bin+1,ave[bin]);
 }
 
 

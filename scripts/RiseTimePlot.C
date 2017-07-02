@@ -22,7 +22,7 @@ double tsmp = 4.e-9;
 int abslo = 350; int abshi = 6000;
 
 void Loop(int run, int ch) {
-	rtf.SetPath("Files/Sources");
+	rtf.SetPath("Files/2017June");
 	if (!rtf.Open(run)) {cout << "No such file" << endl; return;}
 	int numev = rtf.GetNumEvents();
 	gROOT->cd();
@@ -65,11 +65,11 @@ void Loop(int run, int ch) {
 }
 
 double RiseTime(int run, int ev) {
-	PlotFromEmil(false);
-	c = new TCanvas("canv","",600,400);
+//	PlotFromEmil(false);
+	TCanvas* c = new TCanvas("canv","",600,400);
 	TH1F* hsim = (TH1F*)gROOT->FindObject("h1_wo_0");
 	rtf.SetPath("Files/Sources");
-	if (!rtf.Open(run)) {cout << "No such file" << endl; return;}
+	if (!rtf.Open(run)) {cout << "No such file" << endl; return 0;}
 	rtf.GetEvent(ev);
 	wf.MakeTrap(rtf.NI_event.length,rtf.NI_event.wave);
 	wf.Plot();
@@ -93,7 +93,7 @@ double RiseTime(int run, int ev) {
 	Graph->SetMarkerStyle(4);
 	Graph->SetMarkerSize(0.5);
 	Graph->SetTitle("");
-	ax = Graph->GetXaxis();
+	TAxis* ax = Graph->GetXaxis();
 	ax->SetRangeUser(plotlo,plothi);
 	ax->SetTitle("Clock Sample [4ns bins]");
 	ax->CenterTitle();
@@ -143,7 +143,7 @@ double RiseTime(int run, int ev) {
 	line2->SetLineStyle(2);
 	line2->Draw("same");
 	gROOT->cd();
-	if (hsim == 0) return;
+	if (hsim == 0) return 0;
 	double scale = max/hsim->GetMaximum();
 	hsim->SetLineColor(kBlack);
 	hsim->SetLineWidth(2);

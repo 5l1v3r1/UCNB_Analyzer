@@ -35,10 +35,9 @@ private:
 	int NegAmpBins;
 	int AmpBins;
 	vector<vector<short> > dist;
+	vector<double> ave;
 	string hname;
 public:
-	TH1D* hAve;
-	TH2D* hDist;
 	WaveformAverage();
 	~WaveformAverage();
 	void SetBaselineSmp(int bs) {baselinesmp = bs;};
@@ -47,8 +46,8 @@ public:
 	void AddToAve(vector<short> &wave, double TOffset, double ANorm);
 	void Average();
 	void BaselineShift(vector<short> &wave);
-	void Plot();
-	void Write();
+	void GetDist(TH2D* hDist);
+	void GetAve(TH1D* hAve);
 };
 
 #endif // WAVEFORM_AVERAGE_HH__
