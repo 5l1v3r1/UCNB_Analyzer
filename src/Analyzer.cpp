@@ -1,5 +1,5 @@
 // Copyright 2016.  Los Alamos National Security, LLC.
-// Copyright 2016.  UT-Battelle, LLC.
+// Copyright 2016-2017.  UT-Battelle, LLC.
 // This file is part of UCNB_Analyzer.
 // See LICENSE.md included in top directory of this distribution.
 
@@ -14,13 +14,8 @@
 #include <iostream>
 #include <math.h>
 #include <cstring>
+#include <memory>
 
-#include "NIDec2015TrigBinFile.hh"
-#include "NIMay2016TrigBinFile.hh"
-#include "NIFeb2015BinFile.hh"
-#include "NIJune2015BinFile.hh"
-#include "NIMay2016BinFile.hh"
-#include "RawTreeFile.hh"
 #include "TrigTreeFile.hh"
 #include "FitTreeFile.hh"
 #include "TrapTreeFile.hh"
@@ -29,6 +24,7 @@
 #include "WaveformAverage.hh"
 #include "SiCalibrator.hh"
 #include "CommandParser.hh"
+
 
 #include "TApplication.h"
 #include "TRint.h"
@@ -39,8 +35,6 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 
-//void Usage(std::string program);
-void DoRaw(int filenum);
 void DoTrig(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
 void DoFit(int filenum, int thresh);
@@ -66,15 +60,31 @@ CommandParser comm; //fix this
 /*************************************************************************/
 int main (int argc, char *argv[]) {  
 	cout << "Welcome to UCNB_Analyzer v1.2.3" << endl;
-	//-----Interpret arguments
+	//-----Interpret arguments and get task list
 	if (!comm.Parse(argc,argv)) return 1;
+	vector<std::shared_ptr<Task>> tasklist;
+	comm.GetTasks(tasklist);
   
+	for (int task=0; task<tasklist.size(); task++)
+		tasklist[task]->Go(); //mpi-ify
+			
+			
+	
+	/*
 	TApplication* myapp = 0;
+	
 	//-----Process data
 	if (comm.FileOK()) {
 	for (int filenum = comm.File1(); filenum <= comm.File2(); filenum++) {
-		if (comm.DoRaw())
-			DoRaw(filenum);
+		if (comm.DoRaw()) {
+			//shared_ptr<Task> mytask = comm.GetTask();
+			tasklist[0]->Go(filenum);
+			//DoRaw(filenum);
+			//Task* mytask;
+			//mytask = new ReplayBinFile(comm.DataFormat(), comm.Path(), comm.Path());
+			//mytask->Go(filenum);
+			//delete mytask;
+		}
 		if (comm.DoTrig())
 			DoTrig(filenum);
 		if (comm.DoTrap() && !comm.DoAve())
@@ -100,83 +110,9 @@ int main (int argc, char *argv[]) {
 	if (myapp != 0)
 		myapp->Run();
   return 0; 
-
+*/
 }
 
-
-void DoRaw(int filenum) {
-	//-----Open input/output files
-	int nfiles = (comm.DataFormat() == 0) ? MAXRIO : 1; // may need nfiles as parameter in future?
-	vector<BinFile*> InputFile(nfiles);
-	vector<BinFile::BinEv_t*> InputEvent(nfiles);
-	for (int rio=0;rio<nfiles;rio++) { 
-		if (comm.DataFormat() == 0) {
-			InputEvent[rio] = new NIFeb2015BinFile::FebBinEv_t;
-			InputFile[rio] = new NIFeb2015BinFile();
-		}
-		else if (comm.DataFormat() == 1) {
-			InputEvent[rio] = new NIJune2015BinFile::JuneBinEv_t;
-			InputFile[rio] = new NIJune2015BinFile();
-		}
-		else if (comm.DataFormat() == 2) {
-			InputEvent[rio] = new NIMay2016BinFile::MayBinEv_t;
-			InputFile[rio] = new NIMay2016BinFile();
-		}
-		else if (comm.DataFormat() == 3) {
-			InputEvent[rio] = new NIMay2017BinFile::MayBinEv_t;
-			InputFile[rio] = new NIMay2017BinFile();
-		}
-		if (comm.Path().compare("") != 0) { 
-			InputFile[rio]->SetPath(comm.Path());
-		}
-		InputFile[rio]->Open(filenum, rio);
-		if (!InputFile[rio]->IsOpen()) {
-			cout << "Input file not open!" << endl;
-			delete InputFile[rio];
-			delete InputEvent[rio];
-			return;
-		}	
-	}
-	//-----Store in ROOT file
-	cout << "Processing raw file " << filenum << endl;
-	RawTreeFile RootFile;
-	if (comm.Path().compare("") != 0) { 
-		RootFile.SetPath(comm.Path());
-	}
-	if (!RootFile.Create(filenum)) {
-		cout << "Input file not open!" << endl;
-		for (int rio=0;rio<nfiles;rio++) {
-			InputFile[rio]->Close();  
-			delete InputFile[rio];
-			delete InputEvent[rio];  
-		}
-		return;
-	}
-	bool goodevent = true;
-	int cnt = 1000; // Event buffer not flushed at beginning of run
-	while (InputFile[0]->ReadNextEvent(*InputEvent[0]) && goodevent) {
-		float ev = InputFile[0]->GetPosition();
-		if (ev ==-1) {
-			cout << endl << "Warning: early file termination (check file format?)" << endl;
-			break;
-		}
-		float nentries = InputFile[0]->GetLength();
-		printf("Working....%3e/%3e  (%0.1lf %%)\r",ev,nentries,100*ev/nentries);
-		for (int rio=1;rio<nfiles;rio++)
-			InputFile[rio]->ReadNextEvent(*InputEvent[rio]);
-		if (cnt > 0)
-			cnt--;
-		else
-			goodevent = RootFile.FillEvent(InputEvent);
-	}
-	for (int rio=0;rio<nfiles;rio++) {
-		InputFile[rio]->Close();  
-		delete InputFile[rio];
-		delete InputEvent[rio];  
-	}
-	RootFile.Write();
-	RootFile.Close();
-}
 
 void DoTrig(int filenum) {
 	//-----Open input/output files

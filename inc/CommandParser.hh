@@ -12,14 +12,21 @@
 #include <stdio.h>
 #include <iostream>
 #include <cstring>
+#include <vector>
+#include <memory>
+
+#include "Task.hh"
 
 using std::cout;
 using std::endl;
+using std::vector;
+using std::shared_ptr;
 
 
 class CommandParser
 {
 private:
+	//tasks
 	bool doraw;
 	bool dotrig;
 	bool dotrap;
@@ -28,6 +35,7 @@ private:
 	bool doave;
 	bool docal;
 	bool doshapescan;
+	//parameters
 	bool fileok;
 	int filenum1;
 	int filenum2;
@@ -45,6 +53,7 @@ public:
 	CommandParser();
 	~CommandParser() {};
 	bool Parse(int argc, char **argv);
+	void GetTasks(vector<std::shared_ptr<Task>> &tasklist);
 	bool FileOK() {return fileok;};
 	bool DoRaw() {return doraw;};
 	bool DoTrig() {return dotrig;};
@@ -66,6 +75,8 @@ public:
 	int DataFormat() {return dataformat;};
 	std::string Path() {return path;};
 	std::string CalPath() {return calpath;};
+private:
+	bool ErrorCheck(char* name);
 };
 
 #endif // COMMAND_PARSER_HH__

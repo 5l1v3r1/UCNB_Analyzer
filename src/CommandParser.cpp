@@ -10,6 +10,8 @@
 #define COMMAND_PARSER_CPP__
 
 #include "CommandParser.hh"
+#include "ReplayFile.hh"
+#include "ReplayBinFile.hh"
 #include "TSystem.h"
 
 // dataformat:  0 = feb15, 1 = june15, 2 = may16, 3 = may17
@@ -20,13 +22,16 @@ void Usage(std::string program);
 //                              Constructor
 /*************************************************************************/
 CommandParser::CommandParser() {
+	//tasks
 	doraw = false, dotrig = false, dotrap = false, dofit = false, docoinc = false, doave = false, docal = false, doshapescan = false;
+	//parameters
 	fileok = false;
 	filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoinc=-1, scansrc=-1;
 	dataformat = 3;
 	path = "";
-	std::string calpath = "";
+	calpath = "";
 }
+
 
 /*************************************************************************/
 //                              Parse
@@ -259,49 +264,93 @@ bool CommandParser::Parse(int argc, char **argv) {
     }
   }
   
+	 return ErrorCheck(argv[0]);
+}
   
-  if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoinc &&!doave))) {
-    if (!fileok)
-      cout << "No file indicated" << endl;
-    if (!doraw && !dotrig && !dotrap && !dofit && !docoinc && !doave)
-      cout << "What do you want to do? " << endl;
-    Usage(argv[0]);
-    return false;
-  }
+/*************************************************************************/
+//                             ErrorCheck
+/*************************************************************************/
+bool CommandParser::ErrorCheck(char* name) {
+	if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoinc &&!doave))) {
+		if (!fileok)
+			cout << "No file indicated" << endl;
+		if (!doraw && !dotrig && !dotrap && !dofit && !docoinc && !doave)
+			cout << "What do you want to do? " << endl;
+		Usage(name);
+		return false;
+	}
   
-  if ((dotrap || docal) && (decay == -1 || shaping == -1 || top == -1)) {
-	  cout << "Specify trap parameters decay/shaping/top" << endl;
-    Usage(argv[0]);
-    return false;
-  }
+	if ((dotrap || docal) && (decay == -1 || shaping == -1 || top == -1)) {
+		cout << "Specify trap parameters decay/shaping/top" << endl;
+		Usage(name);
+		return false;
+	}
   
-  if (doave && !dotrap) {
-	cout << "Use average with trap filter" << endl;
-	Usage(argv[0]);
-    return false;
-  }
+	if (doave && !dotrap) {
+		cout << "Use average with trap filter" << endl;
+		Usage(name);
+		return false;
+	}
 	
+	if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoinc &&!doave))) {
+		if (!fileok)
+			cout << "No file indicated" << endl;
+		if (!doraw && !dotrig && !dotrap && !dofit && !docoinc && !doave)
+			cout << "What do you want to do? " << endl;
+		Usage(name);
+		return false;
+	}
 	
-		if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoinc &&!doave))) {
-    if (!fileok)
-      cout << "No file indicated" << endl;
-    if (!doraw && !dotrig && !dotrap && !dofit && !docoinc && !doave)
-      cout << "What do you want to do? " << endl;
-    Usage(argv[0]);
-    return false;
-  }
-  if ((dotrap || docal) && (decay == -1 || shaping == -1 || top == -1)) {
-	  cout << "Specify trap parameters decay/shaping/top" << endl;
-    Usage(argv[0]);
-    return false;
-  }
-  if (doave && !dotrap) {
-	cout << "Use average with trap filter" << endl;
-	Usage(argv[0]);
-    return false;
-  }
+	if ((dotrap || docal) && (decay == -1 || shaping == -1 || top == -1)) {
+		cout << "Specify trap parameters decay/shaping/top" << endl;
+		Usage(name);
+		return false;
+	}
+	
+	if (doave && !dotrap) {
+		cout << "Use average with trap filter" << endl;
+		Usage(name);
+		return false;
+	}
+	
 	return true;
 }
+  
+  
+
+/*************************************************************************/
+//                             GetTaskList
+/*************************************************************************/
+void CommandParser::GetTasks(vector<std::shared_ptr<Task>> &tasklist) {
+	tasklist.clear();
+	if (fileok) {
+		shared_ptr<ReplayFile> replaytask(new ReplayFile(filenum1,filenum2));
+		if (doraw) {
+			shared_ptr<ReplayBinFile> mytask(new ReplayBinFile(dataformat,path,path));
+			replaytask->AddTask(mytask);
+		}
+		
+  	//if (dotrig)  add dotrig taask
+		
+	//if (dotrap && !doave)  add dotrap task
+
+	//if (dofit)   add dofit task
+	
+	//if (docoinc)  add docoinc task
+	
+	//if (doave and dotrap)  add doave task
+		
+		tasklist.push_back(replaytask);
+	}
+	
+	
+	
+  
+	//if (docal)  add docalib task
+	
+	//if (doshapescan)   add doshapescan task
+}
+
 
 void Usage(std::string program) {
   cout << "Usage:   " << program  << " -f #1 [#2] -p path" << endl;
