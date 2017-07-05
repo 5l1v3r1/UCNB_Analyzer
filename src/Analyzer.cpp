@@ -28,6 +28,7 @@
 #include "WaveformAnalyzer.hh"
 #include "WaveformAverage.hh"
 #include "SiCalibrator.hh"
+#include "CommandParser.hh"
 
 #include "TApplication.h"
 #include "TRint.h"
@@ -38,7 +39,7 @@ using std::cout;
 using std::endl;
 using std::ifstream;
 
-void Usage(std::string program);
+//void Usage(std::string program);
 void DoRaw(int filenum);
 void DoTrig(int filenum);
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top);
@@ -55,296 +56,44 @@ double bib(double*x, double* par);
 double invx(double* x, double* par);
 double enc2(double* x, double* par);
 
-std::string path;
-int dataformat; // 0 = feb15, 1 = june15, 2 = may16, 3 = may17
-const int maxformat = 4; // 4 formats so far...
 const bool dodraw = true;
 
+CommandParser comm; //fix this
+	
+	
 /*************************************************************************/
 //                            Main Function
 /*************************************************************************/
 int main (int argc, char *argv[]) {  
-
-  cout << "Welcome to UCNB_Analyzer v1.2.3" << endl;
-
-  bool doraw = false, dotrig = false, dotrap = false, dofit = false, docoll = false, doave = false, docal = false, doshapescan = false;
-  bool fileok = false;
-  int i=1, filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoll=-1, avethresh=-1, scansrc=-1;
-  dataformat = 3;
-  path = "";
-  std::string calibfile = "";
-
-  //-----Parse parameters
-  while (i+1 <= argc) {
-    if ((strcmp(argv[i],"-p")==0)||(strcmp(argv[i],"-path")==0)) {
-		i++;
-		if (i+1 > argc) {
-			cout << "Missing argument for -p" << endl;
-			Usage(argv[0]);
-			return 1;
-		}
-		if (argv[i][0] == '-') {
-			cout << "Missing valid argument for -p" << endl;
-			Usage(argv[0]);
-			return 1;
-		}
-		path += argv[i];
-		i++;
-		if (gSystem->AccessPathName(path.c_str())) {
-			cout << "bad path: " << path << " not found " << endl;
-			return 1;
-		}
-	}
-    else if (strcmp(argv[i],"-calibfile")==0) {
-		i++;
-		if (i+1 > argc) {
-			cout << "Missing argument for -cailbfile" << endl;
-			Usage(argv[0]);
-			return 1;
-		}
-		if (argv[i][0] == '-') {
-			cout << "Missing valid argument for -calibfile" << endl;
-			Usage(argv[0]);
-			return 1;
-		}
-		calibfile += argv[i];
-		i++;
-		if (gSystem->AccessPathName(calibfile.c_str())) {
-			cout << "bad file: " << path << " not found " << endl;
-			return 1;
-		}
-	}
-    else if (strcmp(argv[i],"-f")==0) {
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -f" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -f" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      filenum1 = atoi(argv[i]);
-      filenum2 = filenum1;
-      i++;
-      if (i+1 <= argc) {
-	if (argv[i][0] >= '0' && argv[i][0] <= '9') {
-	  filenum2 = atoi(argv[i]);
-	  i++;
-	}
-      }
-      fileok = true;
-    }
-    else if (strcmp(argv[i],"-raw")==0) {
-      doraw = true;
-      i++;
-    }
-    else if (strcmp(argv[i],"-format")==0) {
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -format" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      dataformat = atoi(argv[i]);
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -format" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(dataformat >= 0 && dataformat < maxformat)) {
-	cout << "Missing valid argument for -format" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      i++;
-    }
-    else if (strcmp(argv[i],"-trig")==0) {
-      dotrig = true;
-      i++;
-    }
-    else if (strcmp(argv[i],"-fit")==0) {
-      dofit = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -fit" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -fit" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      fitthresh = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-trap")==0) {
-      dotrap = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -trap" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -trap" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      trapthresh = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-decay")==0) {
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -decay" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -decay" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      decay = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-shaping")==0) {
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -shaping" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -shaping" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      shaping = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-top")==0) {
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -top" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -top" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      top = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-coll")==0) {
-      docoll = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -coll" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -coll" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      smpcoll = atoi(argv[i]);
-      i++;      
-    }
-    else if (strcmp(argv[i],"-ave")==0) {
-      doave = true;
-      i++;
-    }
-    else if (strcmp(argv[i],"-cal")==0) {
-      docal = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -cal" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -cal" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      trapthresh = atoi(argv[i]);
-      i++;
-    }
-    else if (strcmp(argv[i],"-shapescan")==0) {
-      doshapescan = true;
-      i++;
-      if (i+1 > argc) {
-	cout << "Missing argument for -shapescan" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -shapescan" << endl;
-	Usage(argv[0]);
-	return 1;
-      }
-      scansrc = atoi(argv[i]);
-      i++;
-    }
-    else {
-      cout << "Unrecognized parameter " << argv[i] << endl;
-      Usage(argv[0]);
-      return 1;
-    }
-  }
-  if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoll &&!doave))) {
-    if (!fileok)
-      cout << "No file indicated" << endl;
-    if (!doraw && !dotrig && !dotrap && !dofit && !docoll && !doave)
-      cout << "What do you want to do? " << endl;
-    Usage(argv[0]);
-    return 1;
-  }
-  if ((dotrap || docal) && (decay == -1 || shaping == -1 || top == -1)) {
-	  cout << "Specify trap parameters decay/shaping/top" << endl;
-    Usage(argv[0]);
-    return 1;
-  }
-  if (doave && !dotrap) {
-	cout << "Use average with trap filter" << endl;
-	Usage(argv[0]);
-    return 1;
-  }
-  
+	cout << "Welcome to UCNB_Analyzer v1.2.3" << endl;
+	//-----Interpret arguments
+	if (!comm.Parse(argc,argv)) return 1;
   
 	TApplication* myapp = 0;
-  //-----Process data
-  if (fileok) {
-	for (int filenum = filenum1; filenum <= filenum2; filenum++) {
-		if (doraw)
+	//-----Process data
+	if (comm.FileOK()) {
+	for (int filenum = comm.File1(); filenum <= comm.File2(); filenum++) {
+		if (comm.DoRaw())
 			DoRaw(filenum);
-		if (dotrig)
+		if (comm.DoTrig())
 			DoTrig(filenum);
-		if (dotrap && !doave)
-			DoTrap(filenum, trapthresh, decay, shaping, top);
-		if (dofit)
-			DoFit(filenum, fitthresh);
-		if (docoll)
-			DoColl(filenum, smpcoll, calibfile);
-		if (doave && dotrap)
-			DoAve(filenum, decay, shaping, top);
+		if (comm.DoTrap() && !comm.DoAve())
+			DoTrap(filenum, comm.TrapThresh(), comm.Decay(), comm.Shaping(), comm.Top());
+		if (comm.DoFit())
+			DoFit(filenum, comm.FitThresh());
+		if (comm.DoCoinc())
+			DoColl(filenum, comm.SmpCoinc(), comm.CalPath());
+		if (comm.DoAve() && comm.DoTrap())
+			DoAve(filenum, comm.Decay(), comm.Shaping(), comm.Top());
 	}
   }
-  if (docal) {
-	  DoCalib(trapthresh, decay, shaping, top);
+  if (comm.DoCal()) {
+	  DoCalib(comm.TrapThresh(), comm.Decay(), comm.Shaping(), comm.Top());
   }
-  if (doshapescan) {
+  if (comm.DoShapeScan()) {
 	  if (dodraw)
 		myapp = new TApplication("myapp",0,0);
-	  DoShapeScan(scansrc);
+	  DoShapeScan(comm.ScanSrc());
   }
   cout << "Done." << endl;
   if (dodraw)
@@ -354,46 +103,31 @@ int main (int argc, char *argv[]) {
 
 }
 
-void Usage(std::string program) {
-  cout << "Usage:   " << program  << " -f #1 [#2] -p path" << endl;
-  cout << "-raw to convert .bin files to .root" << endl;
-  cout << "      -format <format (0=feb,1=june,2=may)> to set data format (default 2)" << endl;
-  cout << "-trig to convert .trig files to .root" << endl;
-  cout << "-trap <threshold> to filter waveforms for events using linear trapezoid" << endl;
-  cout << "      -decay <smp> to set linear trap decay constant" << endl;
-  cout << "      -shaping <smp> to set linear trap shaping time" << endl;
-  cout << "      -top <smp> to set linear trap flat top length" << endl;
-  cout << "-ave (with -trap) to build average waveform" << endl;
-  cout << "-fit <threshold> to filter waveforms for events using pulse fitting" << endl;
-  cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
-  cout << "-cal <threshold> to perform calibration" << endl;
-  cout << "-shapescan <src> o perform shaping scan on 207Bi (src=1), 113Sn (src=2-3), or 139Ce (src=4-5) betas or x-rays" << endl;
-}
 
 void DoRaw(int filenum) {
 	//-----Open input/output files
-	int nfiles = (dataformat == 0) ? MAXRIO : 1; // may need nfiles as parameter in future?
+	int nfiles = (comm.DataFormat() == 0) ? MAXRIO : 1; // may need nfiles as parameter in future?
 	vector<BinFile*> InputFile(nfiles);
 	vector<BinFile::BinEv_t*> InputEvent(nfiles);
 	for (int rio=0;rio<nfiles;rio++) { 
-		if (dataformat == 0) {
+		if (comm.DataFormat() == 0) {
 			InputEvent[rio] = new NIFeb2015BinFile::FebBinEv_t;
 			InputFile[rio] = new NIFeb2015BinFile();
 		}
-		else if (dataformat == 1) {
+		else if (comm.DataFormat() == 1) {
 			InputEvent[rio] = new NIJune2015BinFile::JuneBinEv_t;
 			InputFile[rio] = new NIJune2015BinFile();
 		}
-		else if (dataformat == 2) {
+		else if (comm.DataFormat() == 2) {
 			InputEvent[rio] = new NIMay2016BinFile::MayBinEv_t;
 			InputFile[rio] = new NIMay2016BinFile();
 		}
-		else if (dataformat == 3) {
+		else if (comm.DataFormat() == 3) {
 			InputEvent[rio] = new NIMay2017BinFile::MayBinEv_t;
 			InputFile[rio] = new NIMay2017BinFile();
 		}
-		if (path.compare("") != 0) { 
-			InputFile[rio]->SetPath(path);
+		if (comm.Path().compare("") != 0) { 
+			InputFile[rio]->SetPath(comm.Path());
 		}
 		InputFile[rio]->Open(filenum, rio);
 		if (!InputFile[rio]->IsOpen()) {
@@ -406,8 +140,8 @@ void DoRaw(int filenum) {
 	//-----Store in ROOT file
 	cout << "Processing raw file " << filenum << endl;
 	RawTreeFile RootFile;
-	if (path.compare("") != 0) { 
-		RootFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		RootFile.SetPath(comm.Path());
 	}
 	if (!RootFile.Create(filenum)) {
 		cout << "Input file not open!" << endl;
@@ -448,16 +182,16 @@ void DoTrig(int filenum) {
 	//-----Open input/output files
 	BinFile* InputFile;
 	BinFile::BinEv_t* InputEvent;
-	if (dataformat == 0 || dataformat == 1) {
+	if (comm.DataFormat() == 0 || comm.DataFormat() == 1) {
 		InputFile = new NIDec2015TrigBinFile();
 		InputEvent = new NIDec2015TrigBinFile::DecTrigBinEv_t;
 	}
-	else if (dataformat == 2) {
+	else if (comm.DataFormat() == 2) {
 		InputFile = new NIMay2016TrigBinFile();
 		InputEvent = new NIMay2016TrigBinFile::MayTrigBinEv_t;
 	}
-	if (path.compare("") != 0) { 
-		InputFile->SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		InputFile->SetPath(comm.Path());
 	}
 	InputFile->Open(filenum);
 	if (!InputFile->IsOpen()) {
@@ -467,8 +201,8 @@ void DoTrig(int filenum) {
 		return;
 	}	
 	TrigTreeFile TrigFile;
-	if (path.compare("") != 0) { 
-		TrigFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		TrigFile.SetPath(comm.Path());
 	}
 	TrigFile.SetTmp();
 	if (!TrigFile.Create(filenum)) {
@@ -492,8 +226,8 @@ void DoTrig(int filenum) {
 	delete InputFile;
 	//-----Sort by timestamp
 	TrigTreeFile NewFile;
-	if (path.compare("") != 0) { 
-		NewFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		NewFile.SetPath(comm.Path());
 	}
 	if (!NewFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
@@ -502,7 +236,7 @@ void DoTrig(int filenum) {
 	NewFile.Sort(TrigFile);
 	NewFile.Write();
 	NewFile.Close();
-	std::string tmpname = path;
+	std::string tmpname = comm.Path();
 	tmpname.append("/");
 	tmpname.append(TrigFile.GetName());
 	TrigFile.Close();
@@ -512,16 +246,16 @@ void DoTrig(int filenum) {
 void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	//-----Open input/output files
 	RawTreeFile RootFile;
-	if (path.compare("") != 0) { 
-		RootFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		RootFile.SetPath(comm.Path());
 	}
 	if (!RootFile.Open(filenum)) {
 		cout << "File Not Open!" << endl;
 		return;
 	}
 	TrapTreeFile TrapFile;
-	if (path.compare("") != 0) { 
-		TrapFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		TrapFile.SetPath(comm.Path());
 	}
 	TrapFile.SetTmp();
 	if (!TrapFile.Create(filenum,decay,shaping,top)) {
@@ -571,8 +305,8 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	} while (filecount != -1);
 	//-----Sort by timestamp
 	TrapTreeFile NewFile;
-	if (path.compare("") != 0) { 
-		NewFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		NewFile.SetPath(comm.Path());
 	}
 	if (!NewFile.Create(filenum,decay,shaping,top)) {
 		cout << "Output file not open!" << endl;
@@ -581,7 +315,7 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 	NewFile.Sort(TrapFile);
 	NewFile.Write();
 	NewFile.Close();
-	std::string tmpname = path;
+	std::string tmpname = comm.Path();
 	tmpname.append("/");
 	tmpname.append(TrapFile.GetName());
 	TrapFile.Close();
@@ -591,16 +325,16 @@ void DoTrap(int filenum, int thresh, int decay, int shaping, int top) {
 void DoFit(int filenum, int thresh) {	
 	//-----Open input/output files
 	RawTreeFile RootFile;
-	if (path.compare("") != 0) { 
-		RootFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		RootFile.SetPath(comm.Path());
 	}
 	if (!RootFile.Open(filenum)) {
 		cout << "Input file not open!" << endl;
 		return;
 	}
 	FitTreeFile FitFile;
-	if (path.compare("") != 0) { 
-		FitFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		FitFile.SetPath(comm.Path());
 	}
 	if (!FitFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
@@ -645,8 +379,8 @@ void DoColl(int filenum, int smp, std::string calibfile) {
   //-----Open input/output files
   TrigTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
   //TrapTreeFile InputFile;  //expand to trig/trap/fit/coll? at some point
-  if (path.compare("") != 0) { 
-	InputFile.SetPath(path);
+  if (comm.Path().compare("") != 0) { 
+	InputFile.SetPath(comm.Path());
   }
   //  if (!InputFile.Open(filenum, 200, 150,150)) {
   if (!InputFile.Open(filenum)) {
@@ -654,8 +388,8 @@ void DoColl(int filenum, int smp, std::string calibfile) {
     return;
   }
   EventTreeFile EventFile;
-  if (path.compare("") != 0) { 
-	EventFile.SetPath(path);
+  if (comm.Path().compare("") != 0) { 
+	EventFile.SetPath(comm.Path());
   }
   if (!EventFile.Create(filenum)) {
 		cout << "Output file not open!" << endl;
@@ -734,16 +468,16 @@ void DoColl(int filenum, int smp, std::string calibfile) {
 void DoAve(int filenum, int decay, int shaping, int top) {
 	//-----Open input/output files
 	RawTreeFile RootFile;
-	if (path.compare("") != 0) { 
-		RootFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		RootFile.SetPath(comm.Path());
 	}
 	if (!RootFile.Open(filenum)) {
 		cout << "Input file not open!" << endl;
 		return;
 	}
 	TrapTreeFile TrapFile;
-	if (path.compare("") != 0) { 
-		TrapFile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		TrapFile.SetPath(comm.Path());
 	}
 	if (!TrapFile.Open(filenum, decay, shaping, top)) {
 		cout << "Trap file Not Open!" << endl;
@@ -843,7 +577,7 @@ void DoAve(int filenum, int decay, int shaping, int top) {
 		if (hwhmup[ch] > 0 && hwhmdown[ch] > 0 && hwhmdownup[ch] > 0) {
 			char tempstr[255];
 			sprintf(tempstr,"Avech%d.root",ch);
-			std::string filename = path;
+			std::string filename = comm.Path();
 			filename.append("/");
 			filename.append(tempstr);
 			cout << "Writing " << filename << endl;
@@ -860,8 +594,8 @@ void DoAve(int filenum, int decay, int shaping, int top) {
 
 void DoCalib(int thresh, int decay, int shaping, int top) {
 	SiCalibrator calib(thresh, decay, shaping, top);
-	if (path.compare("") != 0) { 
-		calib.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		calib.SetPath(comm.Path());
 	}
 	//-----To do: move detector channel mapping to new object
 	//east = 0, west = 1
@@ -899,8 +633,8 @@ void DoCalib(int thresh, int decay, int shaping, int top) {
 	//-----Build histograms
 	cout << "Building histograms.." << endl;
 	TrapTreeFile trapfile;
-	if (path.compare("") != 0) { 
-		trapfile.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		trapfile.SetPath(comm.Path());
 	}
 	//-----To Do:  Check for exising files
 	calib.BuildHists(trapfile);
@@ -924,7 +658,7 @@ void DoShapeScan(int src) {
 	//3.62 at 300K, 3.72 at 80K
 	double eVtoENC = 3.7;
 	//-----Create output file
-	std::string filename = path;
+	std::string filename = comm.Path();
 	filename.append("/");
 	if(src==0)
 		filename.append("ShapingScanBib.root");
@@ -938,8 +672,8 @@ void DoShapeScan(int src) {
 		filename.append("ShapingScanCex.root");
 	TFile* myfile = new TFile(filename.c_str(),"RECREATE");
 	SiCalibrator calib;
-	if (path.compare("") != 0) { 
-		calib.SetPath(path);
+	if (comm.Path().compare("") != 0) { 
+		calib.SetPath(comm.Path());
 	}
 	TF1* fenc = new TF1("fenc",enc2,10,1000,3);
 	//-----Shaping scans
