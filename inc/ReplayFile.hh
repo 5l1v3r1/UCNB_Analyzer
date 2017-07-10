@@ -3,7 +3,7 @@
 // See LICENSE.md included in top directory of this distribution.
 
 // File: ReplayFile.hh
-// Purpose: Analysis task: replay a bin file into a raw tree file
+// Purpose: Analysis task: runs all replay tasks on range of files
  
 #ifndef REPLAY_FILE_HH__
 #define REPLAY_FILE_HH__
@@ -15,7 +15,6 @@
 #include <memory>
 
 #include "Task.hh"
-#include "ReplayBinFile.hh"
 
 using std::cout;
 using std::endl;

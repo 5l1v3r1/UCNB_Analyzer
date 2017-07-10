@@ -3,17 +3,13 @@
 // See LICENSE.md included in top directory of this distribution.
 
 // File: ReplayFile.cpp
-// Purpose: Analysis task: replay a bin file into a raw tree file
+// Purpose: Analysis task: runs all replay tasks on range of files
 
 #ifndef REPLAY_FILE_CPP__
 #define REPLAY_FILE_CPP__
 
+#include "ReplayBinFile.hh"
 #include "ReplayFile.hh"
-#include "NIFeb2015BinFile.hh"
-#include "NIJune2015BinFile.hh"
-#include "NIMay2016BinFile.hh"
-#include "NIMay2017BinFile.hh"
-#include "RawTreeFile.hh"
 
 /*************************************************************************/
 //                           Constructors

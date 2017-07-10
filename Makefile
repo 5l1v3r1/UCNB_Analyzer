@@ -15,7 +15,7 @@ CPPFLAGS = -I inc/ -D_FILE_OFFSET_BITS=64
 LDFLAGS = -L/usr/local/lib -L/usr/include -L/root/lib
 
 MAIN = Analyzer
-SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp NIMay2016BinFile.cpp  NIMay2017BinFile.cpp NIDec2015TrigBinFile.cpp NIMay2016TrigBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrigTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp WaveformAverage.cpp EventTreeFile.cpp CalibSource.cpp SiCalibrator.cpp CommandParser.cpp ReplayFile.cpp ReplayBinFile.cpp
+SOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp NIMay2016BinFile.cpp  NIMay2017BinFile.cpp NIDec2015TrigBinFile.cpp NIMay2016TrigBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrigTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp WaveformAverage.cpp EventTreeFile.cpp CalibSource.cpp SiCalibrator.cpp CommandParser.cpp ReplayFile.cpp ReplayBinFile.cpp ReplayTrigFile.cpp ApplySingleTrap.cpp FitRCCR.cpp FindCoincidence.cpp BuildTemplateWaveform.cpp Calibrate.cpp ShapeScan.cpp
 OBJECTS = $(SOURCES:.cpp=.o) $(MAIN).o 
 INCLUDES = $(SOURCES:.cpp=.hh)
 

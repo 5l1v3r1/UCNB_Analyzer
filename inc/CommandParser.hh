@@ -48,33 +48,12 @@ private:
 	int scansrc=-1;
 	int dataformat = 3;
 	std::string path = "";
-	std::string calpath = "";
+	std::string calibfile = "";
 public:
 	CommandParser();
 	~CommandParser() {};
 	bool Parse(int argc, char **argv);
 	void GetTasks(vector<std::shared_ptr<Task>> &tasklist);
-	bool FileOK() {return fileok;};
-	bool DoRaw() {return doraw;};
-	bool DoTrig() {return dotrig;};
-	bool DoTrap() {return dotrap;};
-	bool DoFit() {return dofit;};
-	bool DoCoinc() {return docoinc;};
-	bool DoAve() {return doave;};
-	bool DoCal() {return docal;};
-	bool DoShapeScan() {return doshapescan;};
-	int File1() {return filenum1;};
-	int File2() {return filenum2;};
-	int FitThresh() {return fitthresh;};
-	int TrapThresh() {return trapthresh;};
-	int Decay() {return decay;};
-	int Shaping() {return shaping;};
-	int Top() {return top;};
-	int SmpCoinc() {return smpcoinc;};
-	int ScanSrc() {return scansrc;};
-	int DataFormat() {return dataformat;};
-	std::string Path() {return path;};
-	std::string CalPath() {return calpath;};
 private:
 	bool ErrorCheck(char* name);
 };

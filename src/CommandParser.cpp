@@ -10,8 +10,17 @@
 #define COMMAND_PARSER_CPP__
 
 #include "CommandParser.hh"
+//List of tasks
 #include "ReplayFile.hh"
 #include "ReplayBinFile.hh"
+#include "ReplayTrigFile.hh"
+#include "ApplySingleTrap.hh"
+#include "FitRCCR.hh"
+#include "FindCoincidence.hh"
+#include "BuildTemplateWaveform.hh"
+#include "Calibrate.hh"
+#include "ShapeScan.hh"
+
 #include "TSystem.h"
 
 // dataformat:  0 = feb15, 1 = june15, 2 = may16, 3 = may17
@@ -29,7 +38,7 @@ CommandParser::CommandParser() {
 	filenum1, filenum2, fitthresh=-1, trapthresh=-1, decay=-1, shaping=-1, top=-1, smpcoinc=-1, scansrc=-1;
 	dataformat = 3;
 	path = "";
-	calpath = "";
+	calibfile = "";
 }
 
 
@@ -58,21 +67,21 @@ bool CommandParser::Parse(int argc, char **argv) {
 			return false;
 		}
 	}
-    else if (strcmp(argv[i],"-calpath")==0) {
+    else if (strcmp(argv[i],"-calibfile")==0) {
 		i++;
 		if (i+1 > argc) {
-			cout << "Missing argument for -cailbfile" << endl;
+			cout << "Missing argument for -calibfile" << endl;
 			Usage(argv[0]);
 			return false;
 		}
 		if (argv[i][0] == '-') {
-			cout << "Missing valid argument for -calpath" << endl;
+			cout << "Missing valid argument for -calibfile" << endl;
 			Usage(argv[0]);
 			return false;
 		}
-		calpath += argv[i];
+		calibfile += argv[i];
 		i++;
-		if (gSystem->AccessPathName(calpath.c_str())) {
+		if (gSystem->AccessPathName(calibfile.c_str())) {
 			cout << "bad file: " << path << " not found " << endl;
 			return false;
 		}
@@ -205,16 +214,16 @@ bool CommandParser::Parse(int argc, char **argv) {
       top = atoi(argv[i]);
       i++;
     }
-    else if (strcmp(argv[i],"-coll")==0) {
+    else if (strcmp(argv[i],"-coinc")==0) {
       docoinc = true;
       i++;
       if (i+1 > argc) {
-	cout << "Missing argument for -coll" << endl;
+	cout << "Missing argument for -coinc" << endl;
 	Usage(argv[0]);
 	return false;
       }
       if (!(argv[i][0] >= '0' && argv[i][0] <= '9')) {
-	cout << "Missing valid argument for -coll" << endl;
+	cout << "Missing valid argument for -coinc" << endl;
 	Usage(argv[0]);
 	return false;
       }
@@ -325,35 +334,45 @@ void CommandParser::GetTasks(vector<std::shared_ptr<Task>> &tasklist) {
 	tasklist.clear();
 	if (fileok) {
 		shared_ptr<ReplayFile> replaytask(new ReplayFile(filenum1,filenum2));
+		if (dotrig) {
+			shared_ptr<ReplayTrigFile> mytask(new ReplayTrigFile(dataformat,path,path));
+			replaytask->AddTask(mytask);
+		}
 		if (doraw) {
 			shared_ptr<ReplayBinFile> mytask(new ReplayBinFile(dataformat,path,path));
 			replaytask->AddTask(mytask);
 		}
-		
-  	//if (dotrig)  add dotrig taask
-		
-	//if (dotrap && !doave)  add dotrap task
-
-	//if (dofit)   add dofit task
-	
-	//if (docoinc)  add docoinc task
-	
-	//if (doave and dotrap)  add doave task
-		
+		if (dotrap && !doave) {
+			shared_ptr<ApplySingleTrap> mytask(new ApplySingleTrap(trapthresh,decay,shaping,top,path,path));
+			replaytask->AddTask(mytask);
+		}
+		if (dofit) {
+			shared_ptr<FitRCCR> mytask(new FitRCCR(fitthresh,path,path));
+			replaytask->AddTask(mytask);
+		}
+		if (docoinc) {
+			shared_ptr<FindCoincidence> mytask(new FindCoincidence(smpcoinc,calibfile,path,path));
+			replaytask->AddTask(mytask);
+		}
+		if (doave && dotrap) {
+			shared_ptr<BuildTemplateWaveform> mytask(new BuildTemplateWaveform(decay,shaping,top,path,path));
+			replaytask->AddTask(mytask);
+		}
 		tasklist.push_back(replaytask);
 	}
-	
-	
-	
-  
-	//if (docal)  add docalib task
-	
-	//if (doshapescan)   add doshapescan task
+	if (docal) { // to be tested
+		shared_ptr<Calibrate> mytask(new Calibrate(trapthresh,decay,shaping,top,path,path));
+		tasklist.push_back(mytask);
+	}
+	if (doshapescan) { // to be tested
+		shared_ptr<ShapeScan> mytask(new ShapeScan(scansrc,path,path));
+		tasklist.push_back(mytask);
+	}
 }
 
 
 void Usage(std::string program) {
-  cout << "Usage:   " << program  << " -f #1 [#2] -p path" << endl;
+  cout << endl << "Usage:   " << program  << " -f #1 [#2 if range] -p path" << endl;
   cout << "-raw to convert .bin files to .root" << endl;
   cout << "      -format <format (0=feb2015,1=june2015,2=may2016,3=may2017)> to set data format (default 3)" << endl;
   cout << "-trig to convert .trig files to .root" << endl;
@@ -363,9 +382,10 @@ void Usage(std::string program) {
   cout << "      -top <smp> to set linear trap flat top length" << endl;
   cout << "-ave (with -trap) to build average waveform" << endl;
   cout << "-fit <threshold> to filter waveforms for events using pulse fitting" << endl;
-  cout << "-coll <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
-  cout << "-cal <threshold> to perform calibration" << endl;
-  cout << "-shapescan <src> o perform shaping scan on 207Bi (src=1), 113Sn (src=2-3), or 139Ce (src=4-5) betas or x-rays" << endl;
+  cout << "-coinc <time in smp (250smp = 1us)> to collect single-event coincidences" << endl;
+  cout << endl << "UNDER DEVELOPMENT:  only works with UCNB data set" << endl << endl;
+  cout << "-cal <threshold> to perform auto-calibration" << endl;
+  cout << "-shapescan <src> to perform shaping scan on 207Bi (src=1), 113Sn (src=2-3), or 139Ce (src=4-5) betas and x-rays" << endl << endl;
 }
 
 
