@@ -23,22 +23,23 @@ BUILDDIR = build
 
 #Code for UCNB
 UCNB = UCNBAnalyzer
-BSOURCES = BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp NIMay2016BinFile.cpp  NIMay2017BinFile.cpp NIDec2015TrigBinFile.cpp NIMay2016TrigBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrigTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp WaveformAverage.cpp EventTreeFile.cpp CalibSource.cpp SiCalibrator.cpp CommandParser.cpp ReplayFile.cpp ReplayBinFile.cpp ReplayTrigFile.cpp ApplySingleTrap.cpp FitRCCR.cpp FindCoincidence.cpp BuildTemplateWaveform.cpp Calibrate.cpp ShapeScan.cpp
+BSOURCES = UCNBCommandParser.cpp BinFile.cpp NIFeb2015BinFile.cpp NIJune2015BinFile.cpp NIMay2016BinFile.cpp  NIMay2017BinFile.cpp NIDec2015TrigBinFile.cpp NIMay2016TrigBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrigTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp WaveformAverage.cpp EventTreeFile.cpp CalibSource.cpp SiCalibrator.cpp ReplayFile.cpp ReplayBinFile.cpp ReplayTrigFile.cpp ApplySingleTrap.cpp FitRCCR.cpp FindCoincidence.cpp BuildTemplateWaveform.cpp Calibrate.cpp ShapeScan.cpp
 BOBJECTS = $(patsubst %.cpp, $(BUILDDIR)/%.o,$(BSOURCES)) $(BUILDDIR)/$(UCNB).o 
 BINCLUDES = $(BSOURCES:.cpp=.hh)
 
 #Code for Ca45
 CA45 = Ca45Analyzer
-CaSOURCES = BinFile.cpp NIMay2017BinFile.cpp NIMay2016TrigBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrigTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp WaveformAverage.cpp EventTreeFile.cpp CommandParser.cpp ReplayFile.cpp ReplayBinFile.cpp ReplayTrigFile.cpp ApplySingleTrap.cpp FitRCCR.cpp FindCoincidence.cpp BuildTemplateWaveform.cpp
-CaOBJECTS = $(patsubst %.cpp, $(BUILDDIR)/%.o,$(CaSOURCES)) $(BUILDDIR)/$(UCNB).o 
+CaSOURCES = Ca45CommandParser.cpp BinFile.cpp NIMay2017BinFile.cpp NIMay2016TrigBinFile.cpp ReplayCaBinFile.cpp TreeFile.cpp RawTreeFile.cpp TrapTreeFile.cpp FitTreeFile.cpp WaveformAnalyzer.cpp WaveformAverage.cpp EventTreeFile.cpp ReplayFile.cpp ApplySingleTrap.cpp FitRCCR.cpp BuildTemplateWaveform.cpp
+CaOBJECTS = $(patsubst %.cpp, $(BUILDDIR)/%.o,$(CaSOURCES)) $(BUILDDIR)/$(CA45).o 
 CaINCLUDES = $(CaSOURCES:.cpp=.hh)
 
-
-
-all: $(UCNB)
+all: $(CA45)
 
 $(CA45): $(CaOBJECTS) 
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) $(ROOTCFLAGS) -o $@ $(CaOBJECTS) $(ROOTLIBS) $(ROOTGLIBS)
+
+$(BUILDDIR)/$(CA45).o : $(CA45).cpp $(CaINCLUDES)
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) $(ROOTCFLAGS) -c $< -o $@ $(ROOTLIBS) $(ROOTGLIBS)
 
 $(UCNB): $(BOBJECTS) 
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) $(ROOTCFLAGS) -o $@ $(BOBJECTS) $(ROOTLIBS) $(ROOTGLIBS)

@@ -65,6 +65,8 @@ bool BinFile::Open(std::string path, std::string name) {
     fFileStream.seekg(0,fFileStream.end);
     fFileLength = fFileStream.tellg();
     fFileStream.seekg(0,fFileStream.beg);
+	pathset = true;
+	mypath = path;
 	return true;
   }
   else {

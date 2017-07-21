@@ -8,7 +8,6 @@
 #ifndef REPLAY_FILE_CPP__
 #define REPLAY_FILE_CPP__
 
-#include "ReplayBinFile.hh"
 #include "ReplayFile.hh"
 
 /*************************************************************************/

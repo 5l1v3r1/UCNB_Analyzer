@@ -2,14 +2,14 @@
 // This file is part of UCNB_Analyzer.
 // See LICENSE.md included in top directory of this distribution.
 
-// File: CommandParser.cpp
+// File: UCNBCommandParser.cpp
 // Purpose: Parse parameters from Analyzer
  
 
-#ifndef COMMAND_PARSER_CPP__
-#define COMMAND_PARSER_CPP__
+#ifndef UCNB_COMMAND_PARSER_CPP__
+#define UCNB_COMMAND_PARSER_CPP__
 
-#include "CommandParser.hh"
+#include "UCNBCommandParser.hh"
 //List of tasks
 #include "ReplayFile.hh"
 #include "ReplayBinFile.hh"
@@ -30,7 +30,7 @@ void Usage(std::string program);
 /*************************************************************************/
 //                              Constructor
 /*************************************************************************/
-CommandParser::CommandParser() {
+UCNBCommandParser::UCNBCommandParser() {
 	//tasks
 	doraw = false, dotrig = false, dotrap = false, dofit = false, docoinc = false, doave = false, docal = false, doshapescan = false;
 	//parameters
@@ -45,7 +45,7 @@ CommandParser::CommandParser() {
 /*************************************************************************/
 //                              Parse
 /*************************************************************************/
-bool CommandParser::Parse(int argc, char **argv) {
+bool UCNBCommandParser::Parse(int argc, char **argv) {
 	int i=1;
 	while (i+1 <= argc) {
     if ((strcmp(argv[i],"-p")==0)||(strcmp(argv[i],"-path")==0)) {
@@ -279,7 +279,7 @@ bool CommandParser::Parse(int argc, char **argv) {
 /*************************************************************************/
 //                             ErrorCheck
 /*************************************************************************/
-bool CommandParser::ErrorCheck(char* name) {
+bool UCNBCommandParser::ErrorCheck(char* name) {
 	if (!docal && !doshapescan && (!fileok || (!doraw && !dotrig && !dotrap && !dofit && !docoinc &&!doave))) {
 		if (!fileok)
 			cout << "No file indicated" << endl;
@@ -330,7 +330,7 @@ bool CommandParser::ErrorCheck(char* name) {
 /*************************************************************************/
 //                             GetTaskList
 /*************************************************************************/
-void CommandParser::GetTasks(vector<std::shared_ptr<Task>> &tasklist) {
+void UCNBCommandParser::GetTasks(vector<std::shared_ptr<Task>> &tasklist) {
 	tasklist.clear();
 	if (fileok) {
 		shared_ptr<ReplayFile> replaytask(new ReplayFile(filenum1,filenum2));
@@ -389,5 +389,5 @@ void Usage(std::string program) {
 }
 
 
-#endif // COMMAND_PARSER_CPP__
+#endif // UCNB_COMMAND_PARSER_CPP__
 

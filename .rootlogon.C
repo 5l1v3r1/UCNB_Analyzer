@@ -6,19 +6,15 @@
 
 {
   gROOT->ProcessLine(".include inc/ "); 
-  gROOT->ProcessLine(".L src/RawTreeFile.cpp");
-  gROOT->ProcessLine(".L src/WaveformAnalyzer.cpp");
-  gROOT->ProcessLine(".L src/TrigTreeFile.cpp");
-  gROOT->ProcessLine(".L src/FitTreeFile.cpp");
-  gROOT->ProcessLine(".L src/TreeFile.cpp");
-  gROOT->ProcessLine(".L src/TrapTreeFile.cpp");
-  gROOT->ProcessLine(".L src/EventTreeFile.cpp");
-//  gROOT->ProcessLine(".L src/SiCalibrator.cpp");
- // ROOT.gInterpreter.GenerateDictionary("vector<SiCalibrator::CalibData_t>","inc/SiCalibrator.h;vector");
- // ROOT.gInterpreter.GenerateDictionary("vector<SiCalibrator::ChData_t>","inc/SiCalibrator.h;vector");
- // ROOT.gInterpreter.GenerateDictionary("vector<SiCalibrator::RunLog_t>","inc/SiCalibrator.h;vector");
-  
-//  gROOT->ProcessLine(".L scripts/Example.C");
-//  gROOT->ProcessLine(".L scripts/Coincs.C");
-//  gROOT->ProcessLine(".L scripts/UCNPlot.C");
+  gROOT->ProcessLine(".include inc/BinFileWrappers/ "); 
+  gROOT->ProcessLine(".include inc/Legacy/ "); 
+  gROOT->ProcessLine(".include inc/Tasks "); 
+  gROOT->ProcessLine(".include inc/TFileWrappers/ "); 
+  gROOT->ProcessLine(".L src/TFileWrappers/RawTreeFile.cpp");
+  gROOT->ProcessLine(".L src/Tasks/WaveformAnalyzer.cpp");
+  gROOT->ProcessLine(".L src/TFileWrappers/TrigTreeFile.cpp");
+  gROOT->ProcessLine(".L src/TFileWrappers/FitTreeFile.cpp");
+  gROOT->ProcessLine(".L src/TFileWrappers/TreeFile.cpp");
+  gROOT->ProcessLine(".L src/TFileWrappers/TrapTreeFile.cpp");
+  gROOT->ProcessLine(".L src/TFileWrappers/EventTreeFile.cpp");
 }

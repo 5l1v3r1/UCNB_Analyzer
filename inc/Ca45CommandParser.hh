@@ -2,11 +2,11 @@
 // This file is part of UCNB_Analyzer.
 // See LICENSE.md included in top directory of this distribution.
 
-// File: CommandParser.hh
+// File: Ca45CommandParser.hh
 // Purpose: Parse parameters from Analyzer
  
-#ifndef COMMAND_PARSER_HH__
-#define COMMAND_PARSER_HH__
+#ifndef CA45_COMMAND_PARSER_HH__
+#define CA45_COMMAND_PARSER_HH__
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,18 +23,16 @@ using std::vector;
 using std::shared_ptr;
 
 
-class CommandParser
+class Ca45CommandParser
 {
 private:
 	//tasks
-	bool doraw;
+	bool doreplay;
 	bool dotrig;
 	bool dotrap;
 	bool dofit;
 	bool docoinc;
 	bool doave;
-	bool docal;
-	bool doshapescan;
 	//parameters
 	bool fileok;
 	int filenum1;
@@ -45,17 +43,15 @@ private:
 	int shaping=-1;
 	int top=-1;
 	int smpcoinc=-1;
-	int scansrc=-1;
-	int dataformat = 3;
 	std::string path = "";
 	std::string calibfile = "";
 public:
-	CommandParser();
-	~CommandParser() {};
+	Ca45CommandParser();
+	~Ca45CommandParser() {};
 	bool Parse(int argc, char **argv);
 	void GetTasks(vector<std::shared_ptr<Task>> &tasklist);
 private:
 	bool ErrorCheck(char* name);
 };
 
-#endif // COMMAND_PARSER_HH__
+#endif // CA45_COMMAND_PARSER_HH__

@@ -39,6 +39,7 @@ public:
 	~NIMay2017BinFile();
 	using BinFile::Open;
 	bool Open(int filenum, int rionum = -1);
+	bool Open(std::string path, int filenum, int rionum = -1);
 	bool ReadNextEvent(BinEv_t& NI_event);
 private:
 	bool ReadHeader();

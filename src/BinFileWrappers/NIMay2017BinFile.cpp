@@ -39,7 +39,37 @@ bool NIMay2017BinFile::Open(int filenum, int rionum){
 	char tempstr[255];
 	sprintf(tempstr,"Run_%d_0.bin",filenum); //THIS FORMAT IS SO STUPIDDDDDDDD
 	std::string filename = tempstr;
+	fileno = filenum;
+	filecount = 0;
     return Open(filename);
+}
+
+bool NIMay2017BinFile::Open(std::string path, int filenum, int rionum){
+	char tempstr[255];
+	sprintf(tempstr,"Run_%d_0.bin",filenum);
+	std::string filename = tempstr;
+    if (Open(path, filename))
+		return true;
+	sprintf(tempstr,"Run_%05d_00.bin",filenum);
+	filename = tempstr;
+    if (Open(path, filename))
+		return true;
+	return false;
+}
+
+bool NIMay2017BinFile::OpenNext(){
+	if (fileno == -1) return false;
+	filecount++;
+	char tempstr[255];
+	sprintf(tempstr,"Run_%d_%d.bin",fileno,filecount);
+	std::string filename = tempstr;
+    if (Open(filename))
+		return true;
+	sprintf(tempstr,"Run_%05d_%d.bin",fileno,filecount);
+	filename = tempstr;
+    if (Open(filename))
+		return true;
+	return false;
 }
 
 /*************************************************************************/
@@ -48,18 +78,7 @@ bool NIMay2017BinFile::Open(int filenum, int rionum){
 bool NIMay2017BinFile::ReadHeader() {
   if (!IsOpen()) 
     return false;
-  char dummy = '0';
-  int i = 0;
-  //computer clock time (1972)
-  fFileStream.seekg(8,fFileStream.beg);
-  /*
-  while (dummy != 'M' && GetPosition()<25) {
-	fFileStream.read(&dummy,1);
-  }
-  if (GetPosition()==25)
-	Reset();
-	*/
-	
+  fFileStream.read(reinterpret_cast<char *>(&(starttimestamp)),8);
   readheader = true;
 }
 
@@ -77,8 +96,12 @@ bool NIMay2017BinFile::ReadNextEvent(BinEv_t& NI_event) {
     return false;
   if (!readheader)
     ReadHeader();
-  if (!CheckLength())
-    return false;
+  if (!CheckLength()) {
+	  if (OpenNext())
+		  ReadHeader();
+	  else
+		return false;
+  }
 
   May_event->result = 0;
   fFileStream.read(reinterpret_cast<char *>(&(May_event->result)),1);

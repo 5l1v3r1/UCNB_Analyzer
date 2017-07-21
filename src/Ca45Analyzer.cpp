@@ -3,8 +3,8 @@
 // This file is part of UCNB_Analyzer.
 // See LICENSE.md included in top directory of this distribution.
 
-// File: Analyzer.cpp
-// Purpose: Analyze data from NI DAQ for UCNB experiment
+// File: Ca45Analyzer.cpp
+// Purpose: Analyze data from NI DAQ for Ca45 experiment
 
 #ifndef ANALYZER_CPP__
 #define ANALYZER_CPP__
@@ -16,9 +16,7 @@
 #include <cstring>
 #include <memory>
 
-#include "UCNBCommandParser.hh"
-
-#include "TApplication.h"
+#include "Ca45CommandParser.hh"
 
 using std::cin;  
 using std::cout;
@@ -30,9 +28,9 @@ using std::ifstream;
 //                            Main Function
 /*************************************************************************/
 int main (int argc, char *argv[]) {  
-	cout << endl << "Welcome to UCNB_Analyzer v1.3.0" << endl << endl;
+	cout << endl << "Welcome to Ca45_Analyzer v1.3.0" << endl << endl;
 	//-----Interpret arguments and get task list
-	UCNBCommandParser comm;
+	Ca45CommandParser comm;
 	if (!comm.Parse(argc,argv)) return 1;
 	vector<std::shared_ptr<Task>> tasklist;
 	comm.GetTasks(tasklist);
